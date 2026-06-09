@@ -58,6 +58,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <head>
+        <meta name="google-adsense-account" content="ca-pub-4861541956465835" />
         <script
           async
           crossOrigin="anonymous"
