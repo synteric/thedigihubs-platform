@@ -4,6 +4,8 @@ TheDigiHubs is a global B2B procurement marketplace where buyers discover suppli
 
 This starter is designed for local development with VS Code and Docker Desktop.
 
+Package manager: this repository is a pnpm workspace. Use `pnpm` commands and keep `pnpm-lock.yaml` as the single committed lockfile.
+
 ## Stack
 
 - Next.js web app
@@ -93,6 +95,8 @@ If Postgres reports invalid credentials during local setup on a fresh starter da
 ## DigitalOcean App Platform deployment
 
 This monorepo must be built from the repository root in DigitalOcean. Do not set the source directory to `apps/web` or `apps/api`; those folders do not contain the root lockfiles or workspace configuration.
+
+DigitalOcean production builds use the root `pnpm-lock.yaml` and `pnpm-workspace.yaml`. Do not commit `package-lock.json`; it is not used by this pnpm workspace and can cause App Platform to report multiple lockfiles.
 
 Use the production Dockerfiles at the repository root:
 

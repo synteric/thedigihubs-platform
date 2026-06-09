@@ -3,10 +3,6 @@
   "private": true,
   "version": "0.1.0",
   "description": "Enterprise-grade global B2B procurement marketplace",
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
   "scripts": {
     "setup": "node scripts/ensure-env.mjs && pnpm install",
     "setup:env": "node scripts/ensure-env.mjs",

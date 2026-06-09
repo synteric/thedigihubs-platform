@@ -4,23 +4,24 @@ WORKDIR /app
 
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# DigitalOcean must build from the repository root. The npm lockfile exists at
-# the root, but it is not npm-ci compatible with the workspace manifests, so use
-# npm install inside the production image build.
-COPY package.json package-lock.json pnpm-lock.yaml pnpm-workspace.yaml ./
+# DigitalOcean must build from the repository root so the pnpm workspace lockfile
+# is available. Do not use apps/web as the build context.
+RUN corepack enable && corepack prepare pnpm@9.15.0 --activate
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/web/package.json ./apps/web/package.json
 COPY apps/api/package.json ./apps/api/package.json
 COPY apps/worker/package.json ./apps/worker/package.json
 COPY packages/database/package.json ./packages/database/package.json
 
-RUN npm install --include=dev
+RUN pnpm install --frozen-lockfile
 
 COPY . .
 
-RUN npm --workspace=@thedigihubs/web run build
+RUN pnpm --filter @thedigihubs/web build
 
 ENV NODE_ENV=production
 
 EXPOSE 3000
 
-CMD ["npm", "--workspace=@thedigihubs/web", "run", "start"]
+CMD ["pnpm", "--filter", "@thedigihubs/web", "start"]
