@@ -1,5 +1,14 @@
+import type { Metadata } from 'next';
 import { MarketingHeader } from '../../components/marketing-shell';
 import { Badge, Card } from '../../components/ui';
+
+export const metadata: Metadata = {
+  title: 'Supplier Marketplace',
+  description: 'Browse TheDigiHubs supplier marketplace for sourcing categories, verified supplier profiles, RFQ invitations, and quotation workflows.',
+  alternates: {
+    canonical: '/marketplace',
+  },
+};
 
 const suppliers = ['MedGlobal Supplies', 'BuildRight Construction', 'TechNova Systems', 'PackCraft Global', 'Voltmax Solutions', 'GreenAgri Source'];
 

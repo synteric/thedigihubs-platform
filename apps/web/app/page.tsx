@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import type { LucideIcon } from 'lucide-react';
 import Link from 'next/link';
 import {
@@ -15,6 +16,14 @@ import {
 import { Logo } from '../components/brand';
 import { PublicHeader } from '../components/public-header';
 import { Button, Card, SectionTitle } from '../components/ui';
+
+export const metadata: Metadata = {
+  title: 'A Trusted Marketplace for Buyers, Suppliers, RFQs, and Quotations',
+  description: 'TheDigiHubs helps organizations find suppliers, issue RFQs, receive quotations, compare offers, and award with transparency in one digital procurement platform.',
+  alternates: {
+    canonical: '/',
+  },
+};
 
 type IconCard = {
   title: string;

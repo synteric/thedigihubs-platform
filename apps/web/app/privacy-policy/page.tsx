@@ -1,8 +1,17 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowRight, LockKeyhole, Mail, ShieldCheck } from 'lucide-react';
 import { PublicHeader } from '../../components/public-header';
 import { MarketingFooter } from '../../components/marketing-footer';
 import { Card, Pill } from '../../components/ui';
+
+export const metadata: Metadata = {
+  title: 'Privacy Policy',
+  description: 'Read how TheDigiHubs handles contact details, organization details, registration requests, subscription requests, support messages, and workspace activity.',
+  alternates: {
+    canonical: '/privacy-policy',
+  },
+};
 
 const sections = [
   {

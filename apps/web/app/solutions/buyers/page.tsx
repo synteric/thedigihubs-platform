@@ -1,4 +1,13 @@
+import type { Metadata } from 'next';
 import { buyerSteps, SolutionPage } from '../solution-page';
+
+export const metadata: Metadata = {
+  title: 'Solutions for Buyers',
+  description: 'TheDigiHubs helps buyer teams discover suppliers, create RFQs, compare quotations, evaluate offers, and award with governed sourcing controls.',
+  alternates: {
+    canonical: '/solutions/buyers',
+  },
+};
 
 export default function BuyersSolutionPage() {
   return (

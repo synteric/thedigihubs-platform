@@ -1,5 +1,7 @@
 import type { MetadataRoute } from 'next';
 
+const SITE_URL = 'https://www.thedigihubs.com';
+
 const publicPaths = [
   '/',
   '/platform',
@@ -10,14 +12,13 @@ const publicPaths = [
   '/register',
   '/subscribe',
   '/contact',
-  '/samples',
   '/marketplace',
   '/privacy-policy',
   '/terms-and-conditions',
 ];
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || SITE_URL).replace(/\/$/, '');
 
   return publicPaths.map((path) => ({
     url: new URL(path, baseUrl).toString(),

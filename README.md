@@ -112,7 +112,7 @@ Frontend component:
 - HTTP port: `3000`
 - Environment variables:
   - `NEXT_PUBLIC_API_URL=https://api.thedigihubs.com/api`
-  - `NEXT_PUBLIC_APP_URL=https://thedigihubs.com`
+  - `NEXT_PUBLIC_APP_URL=https://www.thedigihubs.com`
   - `NODE_ENV=production`
 
 Backend component:
@@ -126,8 +126,8 @@ Backend component:
   - `DATABASE_URL`
   - `JWT_SECRET`
   - `JWT_REFRESH_SECRET`
-  - `FRONTEND_URL=https://thedigihubs.com`
-  - `WEB_ORIGIN=https://thedigihubs.com`
+  - `FRONTEND_URL=https://www.thedigihubs.com`
+  - `WEB_ORIGIN=https://www.thedigihubs.com`
   - `NODE_ENV=production`
   - `PORT=4000`
 

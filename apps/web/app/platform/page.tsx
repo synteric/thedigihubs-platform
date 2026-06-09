@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import {
   ArrowRight,
@@ -13,6 +14,14 @@ import {
 import { PublicHeader } from '../../components/public-header';
 import { MarketingFooter } from '../../components/marketing-footer';
 import { Card, Pill, SectionTitle } from '../../components/ui';
+
+export const metadata: Metadata = {
+  title: 'Platform Overview',
+  description: 'Explore TheDigiHubs platform modules for supplier discovery, RFQ workflow, quote evaluation, supplier collaboration, governance controls, and reporting.',
+  alternates: {
+    canonical: '/platform',
+  },
+};
 
 const modules = [
   {

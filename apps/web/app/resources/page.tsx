@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import {
   ArrowRight,
@@ -13,6 +14,14 @@ import {
 import { PublicHeader } from '../../components/public-header';
 import { MarketingFooter } from '../../components/marketing-footer';
 import { Card, Pill, SectionTitle } from '../../components/ui';
+
+export const metadata: Metadata = {
+  title: 'Procurement Resources',
+  description: 'Access TheDigiHubs procurement resources, sample access, buyer and supplier workflow guides, quote evaluation checklists, and subscription information.',
+  alternates: {
+    canonical: '/resources',
+  },
+};
 
 const resourceCards = [
   {

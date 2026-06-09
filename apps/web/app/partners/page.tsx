@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import {
   ArrowRight,
@@ -12,6 +13,14 @@ import {
 import { PublicHeader } from '../../components/public-header';
 import { MarketingFooter } from '../../components/marketing-footer';
 import { Card, Pill, SectionTitle } from '../../components/ui';
+
+export const metadata: Metadata = {
+  title: 'Partners',
+  description: 'Partner with TheDigiHubs to support supplier onboarding, buyer implementation, sourcing workflow adoption, and connected procurement transformation.',
+  alternates: {
+    canonical: '/partners',
+  },
+};
 
 const partnerTypes = [
   {

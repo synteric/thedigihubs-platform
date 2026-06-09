@@ -1,4 +1,13 @@
+import type { Metadata } from 'next';
 import { SolutionPage, supplierSteps } from '../solution-page';
+
+export const metadata: Metadata = {
+  title: 'Solutions for Suppliers',
+  description: 'TheDigiHubs helps supplier teams find matched RFQ opportunities, review buyer requirements, prepare quotations, and track opportunity workflows.',
+  alternates: {
+    canonical: '/solutions/suppliers',
+  },
+};
 
 export default function SuppliersSolutionPage() {
   return (

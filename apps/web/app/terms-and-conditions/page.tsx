@@ -1,8 +1,17 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowRight, CheckCircle2, ClipboardCheck, ShieldCheck } from 'lucide-react';
 import { PublicHeader } from '../../components/public-header';
 import { MarketingFooter } from '../../components/marketing-footer';
 import { Card, Pill } from '../../components/ui';
+
+export const metadata: Metadata = {
+  title: 'Terms and Conditions',
+  description: 'Review TheDigiHubs terms covering public registration, subscription review, support requests, platform access, RFQ workflows, and governance controls.',
+  alternates: {
+    canonical: '/terms-and-conditions',
+  },
+};
 
 const terms = [
   'Public registration provides sample access and starts an access review process.',
