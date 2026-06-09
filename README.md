@@ -90,6 +90,50 @@ If Postgres reports invalid credentials during local setup on a fresh starter da
 - MinIO console: http://localhost:9001
 - Meilisearch: http://localhost:7700
 
+## DigitalOcean App Platform deployment
+
+This monorepo must be built from the repository root in DigitalOcean. Do not set the source directory to `apps/web` or `apps/api`; those folders do not contain the root lockfiles or workspace configuration.
+
+Use the production Dockerfiles at the repository root:
+
+- Frontend Dockerfile path: `Dockerfile.web`
+- Backend Dockerfile path: `Dockerfile.api`
+
+Frontend component:
+
+- Source repository: `synteric/thedigihubs-platform`
+- Branch: `main`
+- Source directory: blank or repository root
+- Dockerfile path: `Dockerfile.web`
+- HTTP port: `3000`
+- Environment variables:
+  - `NEXT_PUBLIC_API_URL=https://api.thedigihubs.com/api`
+  - `NEXT_PUBLIC_APP_URL=https://thedigihubs.com`
+  - `NODE_ENV=production`
+
+Backend component:
+
+- Source repository: `synteric/thedigihubs-platform`
+- Branch: `main`
+- Source directory: blank or repository root
+- Dockerfile path: `Dockerfile.api`
+- HTTP port: `4000`
+- Environment variables:
+  - `DATABASE_URL`
+  - `JWT_SECRET`
+  - `JWT_REFRESH_SECRET`
+  - `FRONTEND_URL=https://thedigihubs.com`
+  - `WEB_ORIGIN=https://thedigihubs.com`
+  - `NODE_ENV=production`
+  - `PORT=4000`
+
+The existing local Docker development files are still used by VS Code and Docker Compose:
+
+- `docker-compose.yml`
+- `apps/web/Dockerfile`
+- `apps/api/Dockerfile`
+- `apps/worker/Dockerfile`
+
 ## Auth and local access
 
 After auth or schema changes, refresh the local database:

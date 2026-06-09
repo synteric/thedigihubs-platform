@@ -1,0 +1,26 @@
+FROM node:22-alpine
+
+WORKDIR /app
+
+ENV NEXT_TELEMETRY_DISABLED=1
+
+# DigitalOcean must build from the repository root. The npm lockfile exists at
+# the root, but it is not npm-ci compatible with the workspace manifests, so use
+# npm install inside the production image build.
+COPY package.json package-lock.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/web/package.json ./apps/web/package.json
+COPY apps/api/package.json ./apps/api/package.json
+COPY apps/worker/package.json ./apps/worker/package.json
+COPY packages/database/package.json ./packages/database/package.json
+
+RUN npm install --include=dev
+
+COPY . .
+
+RUN npm --workspace=@thedigihubs/web run build
+
+ENV NODE_ENV=production
+
+EXPOSE 3000
+
+CMD ["npm", "--workspace=@thedigihubs/web", "run", "start"]

@@ -1,0 +1,56 @@
+name: thedigihubs-platform
+services:
+  - name: web
+    github:
+      repo: synteric/thedigihubs-platform
+      branch: main
+      deploy_on_push: true
+    source_dir: /
+    dockerfile_path: Dockerfile.web
+    http_port: 3000
+    envs:
+      - key: NEXT_PUBLIC_API_URL
+        value: https://api.thedigihubs.com/api
+        scope: RUN_AND_BUILD_TIME
+      - key: NEXT_PUBLIC_APP_URL
+        value: https://thedigihubs.com
+        scope: RUN_AND_BUILD_TIME
+      - key: NODE_ENV
+        value: production
+        scope: RUN_AND_BUILD_TIME
+
+  - name: api
+    github:
+      repo: synteric/thedigihubs-platform
+      branch: main
+      deploy_on_push: true
+    source_dir: /
+    dockerfile_path: Dockerfile.api
+    http_port: 4000
+    # Replace SET_IN_DIGITALOCEAN values in the App Platform UI or with real
+    # encrypted app spec secrets before deploying.
+    envs:
+      - key: DATABASE_URL
+        value: SET_IN_DIGITALOCEAN
+        type: SECRET
+        scope: RUN_AND_BUILD_TIME
+      - key: JWT_SECRET
+        value: SET_IN_DIGITALOCEAN
+        type: SECRET
+        scope: RUN_AND_BUILD_TIME
+      - key: JWT_REFRESH_SECRET
+        value: SET_IN_DIGITALOCEAN
+        type: SECRET
+        scope: RUN_AND_BUILD_TIME
+      - key: FRONTEND_URL
+        value: https://thedigihubs.com
+        scope: RUN_AND_BUILD_TIME
+      - key: WEB_ORIGIN
+        value: https://thedigihubs.com
+        scope: RUN_AND_BUILD_TIME
+      - key: NODE_ENV
+        value: production
+        scope: RUN_AND_BUILD_TIME
+      - key: PORT
+        value: "4000"
+        scope: RUN_AND_BUILD_TIME
