@@ -327,10 +327,10 @@ export function RevenueManager() {
           <p className="mt-2 text-slate-600">Review plan access, subscription requests, and billing readiness for the platform.</p>
         </div>
         <div className="flex flex-wrap gap-3">
-          <button className="rounded-xl border border-[#DFE9F7] bg-white px-5 py-3 text-sm font-black">
+          <div className="rounded-xl border border-[#DFE9F7] bg-white px-5 py-3 text-sm font-black">
             <CalendarDays className="mr-2 inline" size={16} />
             {data ? `Updated ${dateText(data.generatedAt)}` : 'Loading revenue controls'}
-          </button>
+          </div>
           <button onClick={loadRevenue} className="rounded-xl bg-[#155EEF] px-6 py-3 text-sm font-black text-white disabled:opacity-50" disabled={loading}>
             <RefreshCcw className="mr-2 inline" size={16} />
             Refresh

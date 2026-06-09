@@ -128,14 +128,16 @@ function CompleteProfileCard() {
       </div>
       <p className="text-lg font-black">Complete your profile</p>
       <p className="mt-2 text-sm leading-6 text-slate-600">Increase your visibility and get matched with more opportunities.</p>
-      <button className="mt-5 w-full rounded-xl bg-[#155EEF] py-3 text-sm font-black text-white">Complete Now -&gt;</button>
+      <Link href="/subscribe" className="mt-5 block w-full rounded-xl bg-[#155EEF] py-3 text-center text-sm font-black text-white">
+        Complete Now -&gt;
+      </Link>
     </Card>
   );
 }
 
 function InfoMetric({ label, value, children }: { label: string; value: string; children?: ReactNode }) {
   return (
-    <div className="border-r border-[#DFE9F7] px-5 last:border-r-0">
+    <div className="border-b border-[#DFE9F7] px-0 py-4 last:border-b-0 sm:px-5 xl:border-b-0 xl:border-r xl:py-0 xl:last:border-r-0">
       <p className="text-xs font-extrabold uppercase tracking-[0.08em] text-slate-500">{label}</p>
       <div className="mt-2 text-lg font-black text-[#0B1744]">{value}</div>
       {children && <div className="mt-1 text-xs font-bold text-slate-500">{children}</div>}
@@ -145,10 +147,10 @@ function InfoMetric({ label, value, children }: { label: string; value: string; 
 
 function OverviewRow({ icon, title, body }: { icon: ReactNode; title: string; body: string }) {
   return (
-    <div className="grid grid-cols-[34px_190px_1fr] items-start gap-4 border-b border-[#DFE9F7] py-4 last:border-0">
+    <div className="grid grid-cols-[34px_1fr] items-start gap-4 border-b border-[#DFE9F7] py-4 last:border-0 sm:grid-cols-[34px_190px_1fr]">
       <div className="grid h-8 w-8 place-items-center rounded-lg bg-blue-50 text-[#155EEF]">{icon}</div>
       <p className="text-sm font-black text-[#0B1744]">{title}</p>
-      <p className="text-sm leading-6 text-slate-600">{body}</p>
+      <p className="col-span-2 text-sm leading-6 text-slate-600 sm:col-span-1">{body}</p>
     </div>
   );
 }
@@ -157,7 +159,7 @@ function FileRow({ type, name, size }: RfqDocument) {
   const typeColor = type === 'PDF' ? 'bg-red-500' : type === 'DOCX' ? 'bg-[#155EEF]' : type === 'ZIP' ? 'bg-orange-400' : 'bg-slate-500';
 
   return (
-    <div className="grid grid-cols-[1fr_90px_100px_130px_90px] items-center border-b border-[#DFE9F7] py-3 text-sm last:border-b-0">
+    <div className="grid min-w-[720px] grid-cols-[1fr_90px_100px_130px_90px] items-center border-b border-[#DFE9F7] py-3 text-sm last:border-b-0">
       <div className="flex items-center gap-3 font-black text-[#0B1744]">
         <span className={`grid h-9 w-9 place-items-center rounded-lg text-[10px] font-black text-white ${typeColor}`}>
           {type}
@@ -493,7 +495,7 @@ export default function SupplierRfqDetail() {
 
       {!loading && rfq && (
         <>
-          <Card className="mb-5 grid grid-cols-[1.25fr_1fr_.75fr_.8fr_.9fr_.9fr_.65fr] gap-0 p-5">
+          <Card className="mb-5 grid grid-cols-1 gap-0 p-5 sm:grid-cols-2 xl:grid-cols-[1.25fr_1fr_.75fr_.8fr_.9fr_.9fr_.65fr]">
             <InfoMetric label="RFQ ID" value={rfq.reference}>
               {rfq.title} <Pill tone={statusTone(rfq.status)}>{statusLabel(rfq.status)}</Pill>
             </InfoMetric>
@@ -514,7 +516,7 @@ export default function SupplierRfqDetail() {
             <InfoMetric label="Status" value={rfq.canQuote ? 'Open' : statusLabel(rfq.status)}>{quoteStatus ? `Quote ${statusLabel(quoteStatus)}` : 'Public RFQ'}</InfoMetric>
           </Card>
 
-          <div className="grid grid-cols-[1fr_1.06fr] gap-5">
+          <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1fr_1.06fr]">
             <div className="space-y-5">
               <Card className="p-5">
                 <div className="mb-2 flex items-center gap-3">
@@ -556,8 +558,8 @@ export default function SupplierRfqDetail() {
                     <span className="text-sm font-black text-[#155EEF]">View all</span>
                   </div>
                 </div>
-                <div className="rounded-2xl border border-[#DFE9F7] px-4">
-                  <div className="grid grid-cols-[1fr_90px_100px_130px_90px] border-b border-[#DFE9F7] py-3 text-xs font-black uppercase tracking-[0.08em] text-slate-500">
+                <div className="overflow-x-auto rounded-2xl border border-[#DFE9F7] px-4">
+                  <div className="grid min-w-[720px] grid-cols-[1fr_90px_100px_130px_90px] border-b border-[#DFE9F7] py-3 text-xs font-black uppercase tracking-[0.08em] text-slate-500">
                     <span>File Name</span>
                     <span>Type</span>
                     <span>Size</span>
@@ -590,10 +592,10 @@ export default function SupplierRfqDetail() {
                     </div>
                   </div>
                   <div className="flex items-center gap-3 rounded-2xl border border-[#DFE9F7] bg-white p-3">
-                    <input className="w-full bg-transparent px-2 text-sm outline-none placeholder:text-slate-400" placeholder="Type your question here..." />
-                    <Paperclip className="text-[#155EEF]" size={19} />
-                    <button className="inline-flex items-center gap-2 rounded-xl bg-[#155EEF] px-5 py-3 text-sm font-black text-white">
-                      Send <Send size={15} />
+                    <input className="w-full bg-transparent px-2 text-sm outline-none placeholder:text-slate-400 disabled:text-slate-400" placeholder="Buyer messaging will be available after launch." disabled />
+                    <Paperclip className="text-slate-300" size={19} />
+                    <button className="inline-flex items-center gap-2 rounded-xl bg-slate-200 px-5 py-3 text-sm font-black text-slate-500" disabled>
+                      Messaging Soon <Send size={15} />
                     </button>
                   </div>
                 </div>
@@ -613,7 +615,7 @@ export default function SupplierRfqDetail() {
                     This RFQ is not currently open for quote submission.
                   </div>
                 )}
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
                   <label className="text-sm font-black">
                     Quote Reference *
                     <input className="mt-2 w-full rounded-xl border border-[#DFE9F7] px-4 py-3 font-bold outline-none" value={quoteReference} readOnly />
@@ -755,12 +757,12 @@ export default function SupplierRfqDetail() {
             </div>
           </div>
 
-          <div className="sticky bottom-0 -mx-10 mt-5 flex items-center justify-between border-t border-[#DFE9F7] bg-white/95 px-10 py-4 backdrop-blur">
+          <div className="sticky bottom-0 -mx-4 mt-5 flex flex-col gap-3 border-t border-[#DFE9F7] bg-white/95 px-4 py-4 backdrop-blur sm:-mx-6 sm:px-6 lg:-mx-10 lg:flex-row lg:items-center lg:justify-between lg:px-10">
             <Link href="/supplier" className="inline-flex items-center gap-2 rounded-xl border border-[#DFE9F7] bg-white px-6 py-3 text-sm font-black">
               <ArrowLeft size={16} />
               Back to Opportunities
             </Link>
-            <div className="flex gap-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
               <button
                 className="inline-flex items-center gap-2 rounded-xl border border-[#DFE9F7] bg-white px-7 py-3 text-sm font-black disabled:opacity-60"
                 disabled={!rfq.canQuote || Boolean(saving)}

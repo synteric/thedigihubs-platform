@@ -61,7 +61,7 @@ export function Kpi({ icon, label, value, change, tone = 'blue' }: { icon: React
 export function SectionTitle({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
     <div className="text-center">
-      <h2 className="text-4xl font-black tracking-[-0.04em] text-[#0B1744]">{title}</h2>
+      <h2 className="text-3xl font-black tracking-[-0.04em] text-[#0B1744] sm:text-4xl">{title}</h2>
       <div className="mx-auto mt-4 h-1 w-24 rounded-full bg-gradient-to-r from-[#155EEF] via-[#13B6D8] to-[#FFB000]" />
       {subtitle && <p className="mx-auto mt-5 max-w-3xl text-lg leading-8 text-slate-600">{subtitle}</p>}
     </div>
@@ -83,7 +83,7 @@ export function LineChart({ dotted = true }: { dotted?: boolean }) {
 export function Donut({ center = '$2.48M', label = 'Total Spend', items = ['IT Services 35% $868K','Professional Services 25% $620K','Manufacturing 20% $496K','Facilities 10% $248K','Other 10% $248K'] }: { center?: string; label?: string; items?: string[] }) {
   const colors = ['#155EEF', '#13B6D8', '#FFB000', '#7C3AED', '#94A3B8'];
   return (
-    <div className="flex items-center justify-center gap-8">
+    <div className="flex flex-col items-center justify-center gap-6 sm:flex-row sm:gap-8">
       <div className="relative h-44 w-44 shrink-0 rounded-full" style={{ background: `conic-gradient(${colors[0]} 0 35%, ${colors[1]} 35% 60%, ${colors[2]} 60% 80%, ${colors[3]} 80% 90%, ${colors[4]} 90% 100%)` }}>
         <div className="absolute inset-9 grid place-items-center rounded-full bg-white text-center">
           <p className="text-2xl font-black text-[#0B1744]">{center}</p>

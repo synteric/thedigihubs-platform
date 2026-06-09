@@ -1,4 +1,6 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
+import { NavigationFeedback } from '../components/navigation-feedback';
 import { SessionProvider } from '../lib/session';
 import './globals.css';
 
@@ -65,7 +67,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4861541956465835"
         />
       </head>
-      <body><SessionProvider>{children}</SessionProvider></body>
+      <body>
+        <SessionProvider>
+          <Suspense fallback={null}>
+            <NavigationFeedback />
+          </Suspense>
+          {children}
+        </SessionProvider>
+      </body>
     </html>
   );
 }

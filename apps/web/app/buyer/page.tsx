@@ -166,16 +166,16 @@ export default function BuyerDashboard() {
       requiredOrganizationTypes={['BUYER']}
       requiredRoles={['BUYER_OWNER', 'BUYER_MANAGER', 'BUYER_EVALUATOR']}
     >
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="text-3xl font-black tracking-[-.03em]">Welcome back, {firstName}</h1>
           <p className="mt-2 text-slate-600">Here&apos;s what&apos;s happening with your sourcing activity.</p>
         </div>
-        <div className="flex gap-4">
-          <button className="rounded-xl border border-[#DFE9F7] bg-white px-5 py-3 text-sm font-black">
+        <div className="flex flex-wrap gap-3">
+          <div className="rounded-xl border border-[#DFE9F7] bg-white px-5 py-3 text-sm font-black">
             <CalendarDays className="mr-2 inline" size={16} />
             {dateRangeLabel}
-          </button>
+          </div>
           <Link href={canCreateRfq ? '/rfq/new' : '/subscribe'} className="rounded-xl bg-[#155EEF] px-6 py-3 text-sm font-black text-white">
             {canCreateRfq ? '+ Create RFQ' : 'Request Full Access'}
           </Link>
@@ -184,14 +184,14 @@ export default function BuyerDashboard() {
 
       <PlanAccessCard className="mb-5" compact activeHref="/buyer" />
 
-      <div className="grid grid-cols-4 gap-5">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
         <Kpi icon={<FileText />} label="Active RFQs" value={rfqsLoading ? '...' : String(dashboardMetrics.activeRfqs)} change="live RFQ feed" />
         <Kpi icon={<Mail />} label="Quotes Received" value={rfqsLoading ? '...' : String(dashboardMetrics.quoteCount)} change="submitted supplier quotes" tone="green" />
         <Kpi icon={<UsersRound />} label="Ready to Evaluate" value={rfqsLoading ? '...' : String(dashboardMetrics.evaluationReady)} change="quote evaluation queue" tone="orange" />
         <Kpi icon={<Trophy />} label="Pending Awards" value={rfqsLoading ? '...' : String(dashboardMetrics.pendingAwards)} change="awaiting decision" tone="purple" />
       </div>
 
-      <div className="mt-5 grid grid-cols-[1.15fr_1fr] gap-5">
+      <div className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-[1.15fr_1fr]">
         <Card className="p-5">
           <div className="flex justify-between">
             <h2 className="text-xl font-black">RFQ Activity Trend</h2>
@@ -207,15 +207,15 @@ export default function BuyerDashboard() {
         </Card>
       </div>
 
-      <div className="mt-5 grid grid-cols-[1.2fr_.9fr_.9fr] gap-5">
-        <Card className="p-5">
+      <div className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-[1.2fr_.9fr_.9fr]">
+        <Card className="overflow-x-auto p-5">
           <div className="flex justify-between">
             <h2 className="text-xl font-black">Quote Evaluation Queue</h2>
             <Link href={canCreateRfq ? '/rfq/new' : '/subscribe'} className="text-sm font-black text-[#155EEF]">
               {canCreateRfq ? 'Create RFQ ->' : 'Request access ->'}
             </Link>
           </div>
-          <table className="mt-4 w-full text-left text-sm">
+          <table className="mt-4 min-w-[720px] w-full text-left text-sm">
             <thead className="text-xs text-slate-500">
               <tr>
                 <th>RFQ</th>

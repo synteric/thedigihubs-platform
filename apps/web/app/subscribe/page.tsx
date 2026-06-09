@@ -216,7 +216,7 @@ export default function SubscribePage() {
           <p className="mt-2 text-sm font-bold text-slate-500">All plan requests are reviewed by admin before access is assigned.</p>
         </div>
 
-        <div className="mt-6 grid gap-4 lg:grid-cols-4">
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {plans.map(({ key, name, audience, button, features, icon: Icon, popular }) => {
             const active = selectedPlan === key;
             return (

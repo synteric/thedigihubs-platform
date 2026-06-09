@@ -78,7 +78,9 @@ function CompleteCard() {
       <div className="mb-4 grid h-16 w-16 place-items-center rounded-full border-4 border-blue-100 text-xl font-black text-[#155EEF]">78%</div>
       <p className="text-lg font-black">Complete your profile</p>
       <p className="mt-2 text-sm leading-6 text-slate-600">Increase your visibility and get matched with more opportunities.</p>
-      <button className="mt-5 w-full rounded-xl bg-[#155EEF] py-3 text-sm font-black text-white">Complete Now →</button>
+      <Link href="/subscribe" className="mt-5 block w-full rounded-xl bg-[#155EEF] py-3 text-center text-sm font-black text-white">
+        Complete Now →
+      </Link>
     </Card>
   );
 }
@@ -175,16 +177,16 @@ export default function Supplier() {
       requiredOrganizationTypes={['SUPPLIER']}
       requiredRoles={['SUPPLIER_OWNER', 'SUPPLIER_MANAGER', 'SUPPLIER_STAFF']}
     >
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="text-3xl font-black tracking-[-.03em]">Welcome back, {firstName}.</h1>
           <p className="mt-2 text-slate-600">Here&apos;s your supplier dashboard overview.</p>
         </div>
-        <div className="flex gap-4">
-          <button className="rounded-xl border border-[#DFE9F7] bg-white px-5 py-3 text-sm font-black">
+        <div className="flex flex-wrap gap-3">
+          <div className="rounded-xl border border-[#DFE9F7] bg-white px-5 py-3 text-sm font-black">
             <CalendarDays className="mr-2 inline" size={16} />
             {dateRangeLabel}
-          </button>
+          </div>
           <Link href={canUseQuoteWorkflow ? '#matched-opportunities' : '/samples'} className="rounded-xl bg-[#155EEF] px-6 py-3 text-sm font-black text-white">
             {canUseQuoteWorkflow ? 'View Opportunities →' : 'View Samples →'}
           </Link>
@@ -193,20 +195,20 @@ export default function Supplier() {
 
       <PlanAccessCard className="mb-5" compact activeHref="/supplier" />
 
-      <div className="grid grid-cols-4 gap-5">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
         <Kpi icon={<Target />} label="Matched Opportunities" value={opportunitiesLoading ? '...' : String(opportunityMetrics.matched)} change="live match feed" />
         <Kpi icon={<FileText />} label="Submitted Quotes" value={String(opportunityMetrics.submittedQuotes)} change="from your quotes" tone="green" />
         <Kpi icon={<ShoppingCart />} label="Active Orders" value={String(opportunityMetrics.activeOrders)} change="awarded RFQs" tone="orange" />
         <Kpi icon={<Trophy />} label="Awards Won" value={String(opportunityMetrics.awardsWon)} change="supplier wins" tone="purple" />
       </div>
 
-      <div className="mt-5 grid grid-cols-[1.6fr_.8fr] gap-5">
-        <Card className="p-5" id="matched-opportunities">
+      <div className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-[1.6fr_.8fr]">
+        <Card className="overflow-x-auto p-5" id="matched-opportunities">
           <div className="mb-4 flex justify-between">
             <h2 className="text-xl font-black">Matched Opportunities</h2>
             <Link href="#matched-opportunities" className="text-sm font-black text-[#155EEF]">View all opportunities →</Link>
           </div>
-          <table className="w-full text-left text-sm">
+          <table className="min-w-[760px] w-full text-left text-sm">
             <thead className="text-xs text-slate-500">
               <tr>
                 <th>RFQ</th>
@@ -301,7 +303,7 @@ export default function Supplier() {
         </div>
       </div>
 
-      <div className="mt-5 grid grid-cols-[1.1fr_.8fr_.9fr] gap-5">
+      <div className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-[1.1fr_.8fr_.9fr]">
         <Card className="p-5">
           <h2 className="text-xl font-black">Opportunity Activity Trend</h2>
           <LineChart />

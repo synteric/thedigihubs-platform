@@ -171,10 +171,10 @@ export function AdminDashboard() {
           <p className="mt-2 text-slate-600">Platform administration overview and marketplace governance.</p>
         </div>
         <div className="flex flex-wrap gap-3">
-          <button className="rounded-xl border border-[#DFE9F7] bg-white px-5 py-3 text-sm font-black">
+          <div className="rounded-xl border border-[#DFE9F7] bg-white px-5 py-3 text-sm font-black">
             <CalendarDays className="mr-2 inline" size={16} />
             {overview ? `Updated ${shortDate(overview.generatedAt)}` : 'Loading overview'}
-          </button>
+          </div>
           <button onClick={loadOverview} className="rounded-xl bg-[#155EEF] px-6 py-3 text-sm font-black text-white disabled:opacity-50" disabled={loading}>
             Refresh Overview
           </button>

@@ -72,7 +72,9 @@ function InviteCard() {
       </div>
       <p className="text-lg font-black">Invite external suppliers</p>
       <p className="mt-2 text-sm leading-6 text-slate-600">Grow your network and get more competitive quotes.</p>
-      <button className="mt-5 w-full rounded-xl bg-[#155EEF] py-3 text-sm font-black text-white">Invite Suppliers</button>
+      <Link href="#supplier-invites" className="mt-5 block w-full rounded-xl bg-[#155EEF] py-3 text-center text-sm font-black text-white">
+        Invite Suppliers
+      </Link>
     </Card>
   );
 }
@@ -271,18 +273,20 @@ export function RfqWorkflow() {
         <p className="mt-2 text-slate-600">Fill in the details to create and publish your RFQ.</p>
       </div>
 
-      <div className="mt-8 grid grid-cols-7 gap-2">
-        {steps.map((step, index) => (
-          <div key={step} className="text-center">
-            <div className={`mx-auto grid h-10 w-10 place-items-center rounded-full border-2 text-sm font-black ${index < 3 ? 'border-emerald-500 bg-emerald-500 text-white' : index === 3 ? 'border-[#155EEF] bg-white text-[#155EEF]' : 'border-[#DFE9F7] bg-white text-slate-500'}`}>
-              {index < 3 ? <Check size={16} /> : index + 1}
+      <div className="mt-8 overflow-x-auto pb-2">
+        <div className="grid min-w-[760px] grid-cols-7 gap-2">
+          {steps.map((step, index) => (
+            <div key={step} className="text-center">
+              <div className={`mx-auto grid h-10 w-10 place-items-center rounded-full border-2 text-sm font-black ${index < 3 ? 'border-emerald-500 bg-emerald-500 text-white' : index === 3 ? 'border-[#155EEF] bg-white text-[#155EEF]' : 'border-[#DFE9F7] bg-white text-slate-500'}`}>
+                {index < 3 ? <Check size={16} /> : index + 1}
+              </div>
+              <p className={`mt-2 text-xs font-black ${index === 3 ? 'text-[#155EEF]' : 'text-[#0B1744]'}`}>{step}</p>
             </div>
-            <p className={`mt-2 text-xs font-black ${index === 3 ? 'text-[#155EEF]' : 'text-[#0B1744]'}`}>{step}</p>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
 
-      <div className="mt-7 grid grid-cols-[1fr_360px] gap-6">
+      <div className="mt-7 grid grid-cols-1 gap-6 xl:grid-cols-[1fr_360px]">
         <div className="space-y-5">
           <Card className="p-6">
             <div className="flex items-center gap-3">
@@ -341,13 +345,13 @@ export function RfqWorkflow() {
             />
           </Card>
 
-          <div className="grid grid-cols-2 gap-5">
-            <Card className="p-5">
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+            <Card className="scroll-mt-28 p-5" id="rfq-preview">
               <div className="flex justify-between">
                 <h3 className="font-black">RFQ Summary</h3>
                 <span className="text-sm font-black text-[#155EEF]">Edit</span>
               </div>
-              <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
+              <div className="mt-4 grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
                 <p><b>RFQ Title</b><br />Industrial Pumps Procurement</p>
                 <p><b>Deadline</b><br />{rfqClosingDateLabel()} • 10:00 PM</p>
                 <p><b>Category</b><br />Machinery & Equipment</p>
@@ -406,7 +410,7 @@ export function RfqWorkflow() {
             ))}
           </Card>
 
-          <Card className="p-5">
+          <Card className="scroll-mt-28 p-5" id="supplier-invites">
             <div className="flex justify-between">
               <h3 className="font-black">External Supplier Invites ({externalInvites.length})</h3>
               <span className="text-sm font-black text-[#155EEF]">Add more</span>
@@ -437,11 +441,11 @@ export function RfqWorkflow() {
         </div>
       </div>
 
-      <div className="mt-7 flex items-center justify-between border-t border-[#DFE9F7] pt-5">
+      <div className="mt-7 flex flex-col gap-4 border-t border-[#DFE9F7] pt-5 lg:flex-row lg:items-center lg:justify-between">
         <button className="rounded-xl border border-[#DFE9F7] bg-white px-6 py-3 font-black" onClick={() => window.history.back()}>← Back</button>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
           {message && (
-            <div className={`max-w-[420px] text-right text-sm font-bold ${saveState === 'error' ? 'text-red-600' : 'text-emerald-700'}`}>
+            <div className={`max-w-[420px] text-left text-sm font-bold sm:text-right ${saveState === 'error' ? 'text-red-600' : 'text-emerald-700'}`}>
               <p>{message}</p>
               {createdRfqId && saveState !== 'error' && (
                 <Link href={`/buyer/rfq/${createdRfqId}/evaluation`} className="mt-1 inline-flex text-[#155EEF]">
@@ -458,7 +462,9 @@ export function RfqWorkflow() {
             <Save className="mr-2 inline" size={16} />
             {saveState === 'saving' ? 'Saving Draft' : 'Save Draft'}
           </button>
-          <button className="rounded-xl border border-[#DFE9F7] bg-white px-6 py-3 font-black">Preview RFQ</button>
+          <Link href="#rfq-preview" className="rounded-xl border border-[#DFE9F7] bg-white px-6 py-3 font-black">
+            Preview RFQ
+          </Link>
           <button
             className="rounded-xl bg-[#155EEF] px-7 py-3 font-black text-white disabled:opacity-60"
             disabled={saveState === 'saving' || saveState === 'matching'}

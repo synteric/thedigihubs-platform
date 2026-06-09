@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { Logo } from '../components/brand';
 import { PublicHeader } from '../components/public-header';
-import { Button, Card, SectionTitle } from '../components/ui';
+import { Card, SectionTitle } from '../components/ui';
 
 export const metadata: Metadata = {
   title: 'A Trusted Marketplace for Buyers, Suppliers, RFQs, and Quotations',
@@ -223,14 +223,14 @@ function HeroMapBackdrop() {
 
 function FloatingCard({ title, body, className, icon: Icon, tone }: IconCard & { className: string }) {
   return (
-    <div className={`absolute min-h-[104px] rounded-[20px] border border-[#D8E6F7] bg-white/95 p-4 shadow-[0_18px_44px_rgba(16,33,63,.13)] backdrop-blur ${className}`}>
-      <div className="flex items-center gap-4">
-        <div className={`grid h-14 w-14 shrink-0 place-items-center rounded-full ${toneStyles[tone]}`}>
-          <Icon size={25} strokeWidth={2.25} />
+    <div className={`absolute min-h-[82px] max-sm:!w-[46%] rounded-[18px] border border-[#D8E6F7] bg-white/95 p-2.5 shadow-[0_18px_44px_rgba(16,33,63,.13)] backdrop-blur sm:min-h-[104px] sm:rounded-[20px] sm:p-4 ${className}`}>
+      <div className="flex items-center gap-2 sm:gap-4">
+        <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-full sm:h-14 sm:w-14 ${toneStyles[tone]}`}>
+          <Icon size={20} strokeWidth={2.25} />
         </div>
         <div>
-          <p className="text-base font-black text-[#0B1744]">{title}</p>
-          <p className="mt-1.5 text-sm font-semibold leading-6 text-slate-600">{body}</p>
+          <p className="text-xs font-black text-[#0B1744] sm:text-base">{title}</p>
+          <p className="mt-1 text-[11px] font-semibold leading-4 text-slate-600 sm:mt-1.5 sm:text-sm sm:leading-6">{body}</p>
         </div>
       </div>
     </div>
@@ -354,22 +354,24 @@ export default function Home() {
     <main className="bg-white text-[#0B1744]">
       <PublicHeader />
 
-      <section className="relative overflow-hidden bg-white px-10 py-8">
+      <section className="relative overflow-hidden bg-white px-4 py-7 sm:px-6 lg:px-10 lg:py-8">
         <div className="absolute right-0 top-24 h-[520px] w-[920px] rounded-full bg-blue-50 blur-3xl" />
         <div className="mx-auto grid max-w-[1540px] items-center gap-12 lg:grid-cols-[.76fr_1.24fr]">
           <div className="relative z-10">
-            <h1 className="max-w-[600px] text-5xl font-black leading-[1.08] tracking-[-0.045em] text-[#0B1744] lg:text-[56px]">
+            <h1 className="max-w-[600px] text-4xl font-black leading-[1.08] tracking-[-0.045em] text-[#0B1744] sm:text-5xl lg:text-[56px]">
               A trusted marketplace for buyers, suppliers, RFQs, and quotations.
             </h1>
             <p className="mt-6 max-w-[570px] text-lg font-medium leading-8 text-[#20345F]">
               TheDigiHubs helps organizations find suppliers, issue RFQs, receive quotations, compare offers, and award with transparency in one digital procurement platform.
             </p>
             <div className="mt-8">
-              <Button className="px-7 py-3.5 text-sm"><Play size={18} fill="currentColor" /> Watch Demo</Button>
+              <Link href="/register" className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full bg-[#155EEF] px-7 py-3.5 text-sm font-extrabold text-white shadow-[0_14px_30px_rgba(21,94,239,.18)] transition hover:bg-[#0f49c7]">
+                <Play size={18} fill="currentColor" /> Watch Demo
+              </Link>
             </div>
           </div>
 
-          <div className="relative overflow-hidden rounded-[30px] border border-[#DCE9F8] bg-gradient-to-br from-white via-[#F8FCFF] to-[#EEF7FF] shadow-[0_30px_80px_rgba(16,33,63,.1)]" style={{ height: 'clamp(500px, calc(100vh - 218px), 540px)' }}>
+          <div className="relative h-[430px] overflow-hidden rounded-[30px] border border-[#DCE9F8] bg-gradient-to-br from-white via-[#F8FCFF] to-[#EEF7FF] shadow-[0_30px_80px_rgba(16,33,63,.1)] sm:h-[500px] lg:h-[clamp(500px,calc(100vh-218px),540px)]">
             <HeroMapBackdrop />
             <svg viewBox="0 0 720 540" className="absolute inset-0 h-full w-full" aria-hidden="true">
               <path d="M360 270 L360 80" stroke="#155EEF" strokeWidth="3" strokeDasharray="6 9" />
@@ -400,8 +402,8 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="bg-[#F3FAFF] px-8 py-12">
-        <Card className="mx-auto grid max-w-[1320px] gap-10 p-9 lg:grid-cols-[345px_1fr]">
+      <section id="why" className="scroll-mt-32 bg-[#F3FAFF] px-4 py-12 sm:px-8">
+        <Card className="mx-auto grid max-w-[1320px] gap-10 p-5 sm:p-9 lg:grid-cols-[345px_1fr]">
           <div>
             <h2 className="text-3xl font-black tracking-[-0.03em]">Why teams choose TheDigiHubs</h2>
             <div className="mt-3 h-1 w-16 rounded-full bg-[#13B6D8]" />
@@ -420,8 +422,8 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="rounded-[24px] border border-[#DFE9F7] bg-white p-5 shadow-[0_20px_50px_rgba(16,33,63,.09)]">
-            <div className="grid min-h-[430px] grid-cols-[104px_1fr] gap-5">
+          <div className="overflow-x-auto rounded-[24px] border border-[#DFE9F7] bg-white p-4 shadow-[0_20px_50px_rgba(16,33,63,.09)] sm:p-5">
+            <div className="grid min-h-[430px] min-w-[760px] grid-cols-[104px_1fr] gap-5">
               <div className="rounded-[18px] bg-[#101D4E] p-4 text-white">
                 <Logo markOnly light markClassName="h-11 w-11" />
                 <div className="mt-8 space-y-2 text-xs font-bold text-blue-100">
@@ -492,7 +494,7 @@ export default function Home() {
         </Card>
       </section>
 
-      <section className="bg-[#0D1847] px-8 py-16 text-white">
+      <section className="bg-[#0D1847] px-4 py-16 text-white sm:px-8">
         <div className="text-center">
           <h2 className="text-4xl font-black tracking-[-0.04em] text-white">Deliver better outcomes at every step</h2>
           <div className="mx-auto mt-4 h-1 w-24 rounded-full bg-[#FFB000]" />
@@ -502,7 +504,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="platform" className="bg-[#101A46] px-8 py-16 text-white">
+      <section id="platform" className="bg-[#101A46] px-4 py-16 text-white sm:px-8">
         <div className="mx-auto grid max-w-[1320px] items-center gap-10 lg:grid-cols-[360px_1fr]">
           <div>
             <h2 className="text-4xl font-black">TheDigiHubs Platform</h2>
@@ -510,12 +512,14 @@ export default function Home() {
             <p className="mt-6 leading-8 text-blue-100">
               An integrated platform that connects people, processes, and data across the entire procurement lifecycle.
             </p>
-            <Button className="mt-8">Explore Platform</Button>
+            <Link href="/platform" className="mt-8 inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full bg-[#155EEF] px-6 py-3 text-sm font-extrabold text-white shadow-[0_14px_30px_rgba(21,94,239,.18)] transition hover:bg-[#0f49c7]">
+              Explore Platform <ArrowRight size={16} />
+            </Link>
           </div>
 
-          <div className="relative overflow-hidden rounded-[30px] border border-cyan-400/40 bg-white/[.04] p-8 shadow-[0_24px_70px_rgba(0,0,0,.16)]">
+          <div className="relative overflow-hidden rounded-[30px] border border-cyan-400/40 bg-white/[.04] p-5 shadow-[0_24px_70px_rgba(0,0,0,.16)] sm:p-8">
             <div className="absolute inset-0 opacity-35" style={{ backgroundImage: 'radial-gradient(rgba(94,210,255,.24) 1px, transparent 1px)', backgroundSize: '16px 16px' }} />
-            <svg viewBox="0 0 830 430" className="absolute inset-0 h-full w-full opacity-80" aria-hidden="true">
+            <svg viewBox="0 0 830 430" className="absolute inset-0 hidden h-full w-full opacity-80 lg:block" aria-hidden="true">
               <path d="M415 215 L210 82" stroke="#D9F7FF" strokeWidth="2" strokeDasharray="6 8" />
               <path d="M415 215 L210 215" stroke="#D9F7FF" strokeWidth="2" strokeDasharray="6 8" />
               <path d="M415 215 L210 348" stroke="#D9F7FF" strokeWidth="2" strokeDasharray="6 8" />
@@ -525,7 +529,7 @@ export default function Home() {
               <circle cx="415" cy="215" r="100" fill="none" stroke="#13B6D8" strokeWidth="2" strokeDasharray="5 8" />
               <circle cx="415" cy="215" r="76" fill="none" stroke="#155EEF" strokeWidth="2" />
             </svg>
-            <div className="relative grid grid-cols-[1fr_160px_1fr] items-center gap-8">
+            <div className="relative grid grid-cols-1 items-center gap-5 lg:grid-cols-[1fr_160px_1fr] lg:gap-8">
               <div className="space-y-4">
                 {modules.slice(0, 3).map((module) => <PlatformModule key={module.title} {...module} />)}
               </div>
@@ -542,7 +546,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="resources" className="bg-[#EAF8FF] px-8 py-16">
+      <section id="resources" className="bg-[#EAF8FF] px-4 py-16 sm:px-8">
         <SectionTitle title="Recognized by leading analysts" />
         <div className="mx-auto mt-10 grid max-w-[1100px] overflow-hidden rounded-[28px] bg-white shadow-card lg:grid-cols-[270px_1fr_330px]">
           <div className="grid place-items-center bg-gradient-to-br from-[#155EEF] to-[#0B1744] p-10 text-center text-3xl font-black tracking-[-0.04em] text-white">
@@ -567,12 +571,14 @@ export default function Home() {
             <p className="font-black text-[#155EEF]">LEADER</p>
             <h3 className="mt-4 text-2xl font-black leading-tight">Procurement Marketplace Solutions 2025</h3>
             <p className="mt-4 leading-7 text-slate-600">Recognized for execution excellence and comprehensive vision.</p>
-            <Button variant="yellow" className="mt-7">View Report</Button>
+            <Link href="/resources" className="mt-7 inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full bg-[#FFB000] px-6 py-3 text-sm font-extrabold text-[#0B1744] transition hover:bg-[#F2A300]">
+              View Report <ArrowRight size={16} />
+            </Link>
           </div>
         </div>
       </section>
 
-      <section id="partners" className="px-8 pb-8 pt-14">
+      <section id="partners" className="px-4 pb-8 pt-14 sm:px-8">
         <SectionTitle title="Trusted by forward-thinking organizations worldwide" />
         <div className="mx-auto mt-9 flex max-w-[1180px] flex-wrap items-center justify-between gap-8 text-[#1F3767]">
           {[
@@ -590,8 +596,8 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="px-8 pb-8">
-        <Card className="mx-auto grid max-w-[1200px] grid-cols-[320px_1fr] items-center overflow-hidden border-0 bg-gradient-to-r from-[#17245D] to-[#155EEF] p-0 text-white shadow-[0_22px_58px_rgba(21,94,239,.18)]">
+      <section className="px-4 pb-8 sm:px-8">
+        <Card className="mx-auto grid max-w-[1200px] grid-cols-1 items-center overflow-hidden border-0 bg-gradient-to-r from-[#17245D] to-[#155EEF] p-0 text-white shadow-[0_22px_58px_rgba(21,94,239,.18)] md:grid-cols-[320px_1fr]">
           <CtaWomanIllustration />
           <div className="p-10">
             <h2 className="text-4xl font-black tracking-[-0.04em]">Ready to transform your procurement?</h2>
