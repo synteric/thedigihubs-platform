@@ -1,0 +1,112 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: thedigihubs-postgres
+    environment:
+      POSTGRES_USER: thedigihubs
+      POSTGRES_PASSWORD: thedigihubs
+      POSTGRES_DB: thedigihubs
+    ports:
+      - "${POSTGRES_HOST_PORT:-55432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U thedigihubs -d thedigihubs"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: thedigihubs-redis
+    ports:
+      - "6379:6379"
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.12
+    container_name: thedigihubs-search
+    environment:
+      MEILI_ENV: development
+      MEILI_MASTER_KEY: dev_master_key
+    ports:
+      - "7700:7700"
+    volumes:
+      - meili-data:/meili_data
+
+  minio:
+    image: minio/minio:latest
+    container_name: thedigihubs-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio-data:/data
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: thedigihubs-mailhog
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: thedigihubs-api
+    env_file: .env
+    volumes:
+      - ./apps/api/src:/workspace/apps/api/src
+      - ./packages/database/prisma:/workspace/packages/database/prisma
+    ports:
+      - "4000:4000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      meilisearch:
+        condition: service_started
+
+  worker:
+    build:
+      context: .
+      dockerfile: apps/worker/Dockerfile
+    container_name: thedigihubs-worker
+    env_file: .env
+    volumes:
+      - ./apps/worker/src:/workspace/apps/worker/src
+      - ./packages/database/prisma:/workspace/packages/database/prisma
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: thedigihubs-web
+    env_file: .env
+    volumes:
+      - ./apps/web/app:/workspace/apps/web/app
+      - ./apps/web/components:/workspace/apps/web/components
+      - ./apps/web/lib:/workspace/apps/web/lib
+      - ./apps/web/middleware.ts:/workspace/apps/web/middleware.ts
+      - ./apps/web/next.config.mjs:/workspace/apps/web/next.config.mjs
+      - web-next-cache:/workspace/apps/web/.next
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+
+volumes:
+  postgres-data:
+  meili-data:
+  minio-data:
+  web-next-cache:

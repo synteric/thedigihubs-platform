@@ -1,0 +1,19 @@
+{
+  "name": "@thedigihubs/database",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "prisma:generate": "node ../../scripts/with-env.mjs prisma generate --schema=./prisma/schema.prisma",
+    "prisma:push": "node ../../scripts/with-env.mjs prisma db push --schema=./prisma/schema.prisma",
+    "prisma:seed": "node ../../scripts/with-env.mjs tsx ./prisma/seed.ts"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.1.0",
+    "bcryptjs": "^2.4.3"
+  },
+  "devDependencies": {
+    "prisma": "^6.1.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}

@@ -1,0 +1,91 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "TheDigiHubs: First-time setup",
+      "type": "shell",
+      "command": "pnpm setup",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "TheDigiHubs: Create .env",
+      "type": "shell",
+      "command": "pnpm setup:env",
+      "problemMatcher": []
+    },
+    {
+      "label": "TheDigiHubs: Build all",
+      "type": "shell",
+      "command": "pnpm build",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "TheDigiHubs: Build web",
+      "type": "shell",
+      "command": "pnpm build:web",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "TheDigiHubs: Build api",
+      "type": "shell",
+      "command": "pnpm build:api",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "TheDigiHubs: Typecheck",
+      "type": "shell",
+      "command": "pnpm typecheck",
+      "group": "test",
+      "problemMatcher": "$tsc"
+    },
+    {
+      "label": "TheDigiHubs: Docker up and build",
+      "type": "shell",
+      "command": "pnpm docker:up",
+      "group": "build",
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "TheDigiHubs: Docker up detached",
+      "type": "shell",
+      "command": "pnpm docker:up:detached",
+      "problemMatcher": []
+    },
+    {
+      "label": "TheDigiHubs: Docker bootstrap",
+      "type": "shell",
+      "command": "pnpm docker:bootstrap",
+      "problemMatcher": []
+    },
+    {
+      "label": "TheDigiHubs: Docker rebuild",
+      "type": "shell",
+      "command": "pnpm docker:rebuild",
+      "problemMatcher": []
+    },
+    {
+      "label": "TheDigiHubs: Docker down",
+      "type": "shell",
+      "command": "pnpm docker:down",
+      "problemMatcher": []
+    },
+    {
+      "label": "TheDigiHubs: Docker logs",
+      "type": "shell",
+      "command": "pnpm docker:logs",
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "TheDigiHubs: Setup database in Docker",
+      "type": "shell",
+      "command": "pnpm docker:db:setup",
+      "problemMatcher": []
+    }
+  ]
+}

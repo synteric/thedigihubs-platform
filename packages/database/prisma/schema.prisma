@@ -1,0 +1,436 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum OrganizationType {
+  BUYER
+  SUPPLIER
+  PLATFORM
+}
+
+enum OrganizationStatus {
+  ACTIVE
+  SUSPENDED
+  PENDING_VERIFICATION
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  INVITED
+}
+
+enum MembershipStatus {
+  ACTIVE
+  SUSPENDED
+  INVITED
+}
+
+enum RoleKey {
+  PLATFORM_ADMIN
+  PLATFORM_SUPPORT
+  BUYER_OWNER
+  BUYER_MANAGER
+  BUYER_EVALUATOR
+  SUPPLIER_OWNER
+  SUPPLIER_MANAGER
+  SUPPLIER_STAFF
+  VIEWER
+}
+
+enum SupplierVerificationStatus {
+  UNVERIFIED
+  PENDING_REVIEW
+  VERIFIED
+  SUSPENDED
+}
+
+enum PlanKey {
+  STARTER
+  GROWTH
+  PROFESSIONAL
+  ENTERPRISE
+}
+
+enum SubscriptionRequestStatus {
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+}
+
+enum SupportTicketStatus {
+  OPEN
+  IN_PROGRESS
+  WAITING_ON_CUSTOMER
+  RESOLVED
+  CLOSED
+}
+
+enum SupportTicketPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum RfqStatus {
+  DRAFT
+  PUBLISHED
+  QUOTATION_OPEN
+  EVALUATION
+  AWARDED
+  CANCELLED
+  CLOSED
+}
+
+enum QuoteStatus {
+  DRAFT
+  SUBMITTED
+  WITHDRAWN
+  SHORTLISTED
+  REJECTED
+  AWARDED
+}
+
+enum InviteStatus {
+  SENT
+  OPENED
+  RESPONDED
+  EXPIRED
+  CANCELLED
+}
+
+model Organization {
+  id          String             @id @default(cuid())
+  name        String
+  slug        String             @unique
+  type        OrganizationType
+  status      OrganizationStatus @default(ACTIVE)
+  country     String?
+  website     String?
+  description String?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  users           User[]                       @relation("LegacyUserOrganization")
+  memberships     OrganizationMembership[]
+  planAssignments OrganizationPlanAssignment[]
+  supplier        SupplierProfile?
+  buyerRfqs       Rfq[]                        @relation("BuyerRfqs")
+  sessions        UserSession[]                @relation("SessionActiveOrganization")
+  supportTickets  SupportTicket[]
+}
+
+model User {
+  id             String     @id @default(cuid())
+  email          String     @unique
+  name           String
+  passwordHash   String     @default("dev-placeholder-hash")
+  status         UserStatus @default(ACTIVE)
+  role           RoleKey    @default(VIEWER)
+  organizationId String?
+  organization   Organization? @relation("LegacyUserOrganization", fields: [organizationId], references: [id])
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  memberships    OrganizationMembership[]
+  sessions       UserSession[]
+  createdRfqs    Rfq[]      @relation("CreatedRfqs")
+  auditLogs      AuditLog[]
+  createdSupportTickets  SupportTicket[] @relation("CreatedSupportTickets")
+  assignedSupportTickets SupportTicket[] @relation("AssignedSupportTickets")
+  reviewedSupportTickets SupportTicket[] @relation("ReviewedSupportTickets")
+}
+
+model OrganizationMembership {
+  id             String           @id @default(cuid())
+  userId         String
+  user           User             @relation(fields: [userId], references: [id])
+  organizationId String
+  organization   Organization     @relation(fields: [organizationId], references: [id])
+  roleId         String
+  role           Role             @relation(fields: [roleId], references: [id])
+  status         MembershipStatus @default(ACTIVE)
+  isDefault      Boolean          @default(false)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@unique([userId, organizationId])
+  @@index([organizationId, status])
+}
+
+model Role {
+  id          String   @id @default(cuid())
+  key         RoleKey  @unique
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  memberships OrganizationMembership[]
+  permissions RolePermission[]
+}
+
+model Permission {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  roles       RolePermission[]
+}
+
+model RolePermission {
+  id           String     @id @default(cuid())
+  roleId       String
+  role         Role       @relation(fields: [roleId], references: [id])
+  permissionId String
+  permission   Permission @relation(fields: [permissionId], references: [id])
+  createdAt    DateTime   @default(now())
+
+  @@unique([roleId, permissionId])
+}
+
+model UserSession {
+  id                   String        @id @default(cuid())
+  userId               String
+  user                 User          @relation(fields: [userId], references: [id])
+  activeOrganizationId String?
+  activeOrganization   Organization? @relation("SessionActiveOrganization", fields: [activeOrganizationId], references: [id])
+  tokenHash            String        @unique
+  refreshTokenHash     String        @unique
+  userAgent            String?
+  ipAddress            String?
+  expiresAt            DateTime
+  refreshExpiresAt     DateTime
+  revokedAt            DateTime?
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+
+  @@index([userId, revokedAt])
+}
+
+model MembershipPlan {
+  id          String   @id @default(cuid())
+  key         PlanKey  @unique
+  name        String
+  description String?
+  features    String[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  assignments OrganizationPlanAssignment[]
+}
+
+model OrganizationPlanAssignment {
+  id             String         @id @default(cuid())
+  organizationId String
+  organization   Organization   @relation(fields: [organizationId], references: [id])
+  planId         String
+  plan           MembershipPlan @relation(fields: [planId], references: [id])
+  isActive       Boolean        @default(true)
+  startsAt       DateTime       @default(now())
+  endsAt         DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@unique([organizationId, planId])
+  @@index([organizationId, isActive])
+}
+
+model SubscriptionRequest {
+  id               String                    @id @default(cuid())
+  selectedPlan     PlanKey
+  status           SubscriptionRequestStatus @default(PENDING_REVIEW)
+  name             String
+  email            String
+  organizationName String
+  organizationType OrganizationType?
+  phone            String?
+  country          String?
+  website          String?
+  category         String?
+  estimatedUsers   String?
+  notes            String?
+  decisionNote     String?
+  reviewedById     String?
+  reviewedAt       DateTime?
+  createdAt        DateTime                  @default(now())
+  updatedAt        DateTime                  @updatedAt
+
+  @@index([status, createdAt])
+  @@index([selectedPlan])
+  @@index([email])
+}
+
+model SupportTicket {
+  id             String                @id @default(cuid())
+  reference      String                @unique @default(cuid())
+  subject        String
+  description    String
+  category       String?
+  status         SupportTicketStatus   @default(OPEN)
+  priority       SupportTicketPriority @default(NORMAL)
+  requesterName  String?
+  requesterEmail String?
+  organizationId String?
+  organization   Organization?         @relation(fields: [organizationId], references: [id])
+  createdById    String?
+  createdBy      User?                 @relation("CreatedSupportTickets", fields: [createdById], references: [id])
+  assignedToId   String?
+  assignedTo     User?                 @relation("AssignedSupportTickets", fields: [assignedToId], references: [id])
+  reviewedById   String?
+  reviewedBy     User?                 @relation("ReviewedSupportTickets", fields: [reviewedById], references: [id])
+  resolutionNote String?
+  lastResponseAt DateTime?
+  resolvedAt     DateTime?
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+
+  @@index([status, priority, createdAt])
+  @@index([organizationId, status])
+  @@index([assignedToId, status])
+}
+
+model SupplierProfile {
+  id                  String                     @id @default(cuid())
+  organizationId      String                     @unique
+  organization        Organization               @relation(fields: [organizationId], references: [id])
+  verificationStatus  SupplierVerificationStatus @default(UNVERIFIED)
+  rating              Float                      @default(0)
+  completedContracts  Int                        @default(0)
+  responseRate        Float                      @default(0)
+  averageResponseHrs  Int                        @default(72)
+  countriesServed     String[]
+  categories          String[]
+  certifications      String[]
+  keywords            String[]
+  createdAt           DateTime                   @default(now())
+  updatedAt           DateTime                   @updatedAt
+
+  quotes              Quote[]
+  matches             SupplierMatch[]
+  invites             SupplierInvite[]
+}
+
+model Rfq {
+  id                    String        @id @default(cuid())
+  reference             String        @unique
+  title                 String
+  description           String
+  category              String
+  country               String
+  deliveryLocation      String?
+  currency              String        @default("USD")
+  estimatedBudget       Decimal?
+  closingDate           DateTime
+  status                RfqStatus     @default(DRAFT)
+  buyerOrganizationId   String
+  buyerOrganization     Organization  @relation("BuyerRfqs", fields: [buyerOrganizationId], references: [id])
+  createdById           String
+  createdBy             User          @relation("CreatedRfqs", fields: [createdById], references: [id])
+  evaluationCriteria    Json?
+  technicalNotes        String?
+  supportingDocuments   Json?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  lineItems             RfqLineItem[]
+  invites               SupplierInvite[]
+  quotes                Quote[]
+  matches               SupplierMatch[]
+  award                 Award?
+  auditLogs             AuditLog[]
+}
+
+model RfqLineItem {
+  id          String   @id @default(cuid())
+  rfqId       String
+  rfq         Rfq      @relation(fields: [rfqId], references: [id])
+  name        String
+  description String?
+  quantity    Decimal
+  unit        String
+  createdAt   DateTime @default(now())
+}
+
+model SupplierInvite {
+  id                  String           @id @default(cuid())
+  rfqId               String
+  rfq                 Rfq              @relation(fields: [rfqId], references: [id])
+  supplierProfileId   String?
+  supplierProfile     SupplierProfile? @relation(fields: [supplierProfileId], references: [id])
+  externalEmail       String?
+  externalCompanyName String?
+  token               String           @unique
+  status              InviteStatus     @default(SENT)
+  sentAt              DateTime         @default(now())
+  openedAt            DateTime?
+  respondedAt         DateTime?
+  expiresAt           DateTime
+}
+
+model SupplierMatch {
+  id                String          @id @default(cuid())
+  rfqId             String
+  rfq               Rfq             @relation(fields: [rfqId], references: [id])
+  supplierProfileId String
+  supplierProfile   SupplierProfile @relation(fields: [supplierProfileId], references: [id])
+  score             Float
+  explanation       Json
+  createdAt         DateTime        @default(now())
+
+  @@unique([rfqId, supplierProfileId])
+}
+
+model Quote {
+  id                String           @id @default(cuid())
+  rfqId             String
+  rfq               Rfq              @relation(fields: [rfqId], references: [id])
+  supplierProfileId String?
+  supplierProfile   SupplierProfile? @relation(fields: [supplierProfileId], references: [id])
+  externalEmail     String?
+  totalAmount       Decimal
+  currency          String           @default("USD")
+  deliveryDays      Int
+  validityDays      Int
+  warranty          String?
+  status            QuoteStatus      @default(SUBMITTED)
+  technicalResponse Json?
+  commercialNotes   String?
+  submittedAt       DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  award             Award?
+}
+
+model Award {
+  id           String   @id @default(cuid())
+  rfqId        String   @unique
+  rfq          Rfq      @relation(fields: [rfqId], references: [id])
+  quoteId      String   @unique
+  quote        Quote    @relation(fields: [quoteId], references: [id])
+  decisionNote String
+  awardedAt    DateTime @default(now())
+  awardedById  String
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorId   String?
+  actor     User?    @relation(fields: [actorId], references: [id])
+  rfqId     String?
+  rfq       Rfq?     @relation(fields: [rfqId], references: [id])
+  action    String
+  entity    String
+  entityId  String?
+  metadata  Json?
+  ipAddress String?
+  createdAt DateTime @default(now())
+}
