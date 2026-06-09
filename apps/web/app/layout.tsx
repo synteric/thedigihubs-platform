@@ -57,6 +57,13 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
+      <head>
+        <script
+          async
+          crossOrigin="anonymous"
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4861541956465835"
+        />
+      </head>
       <body><SessionProvider>{children}</SessionProvider></body>
     </html>
   );
