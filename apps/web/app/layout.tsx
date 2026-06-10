@@ -61,6 +61,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <head>
         <meta name="google-adsense-account" content="ca-pub-4861541956465835" />
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-2J7PJ51C04" />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', 'G-2J7PJ51C04');
+            `,
+          }}
+        />
         <script
           async
           crossOrigin="anonymous"
