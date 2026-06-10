@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Script from 'next/script';
 import { Suspense } from 'react';
 import { NavigationFeedback } from '../components/navigation-feedback';
 import { SessionProvider } from '../lib/session';
@@ -61,8 +62,21 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <head>
         <meta name="google-adsense-account" content="ca-pub-4861541956465835" />
-        <script async src="https://www.googletagmanager.com/gtag/js?id=G-2J7PJ51C04" />
         <script
+          async
+          crossOrigin="anonymous"
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4861541956465835"
+        />
+      </head>
+      <body>
+        <Script
+          id="google-analytics-loader"
+          src="https://www.googletagmanager.com/gtag/js?id=G-2J7PJ51C04"
+          strategy="beforeInteractive"
+        />
+        <Script
+          id="google-analytics"
+          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
             __html: `
               window.dataLayer = window.dataLayer || [];
@@ -72,13 +86,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             `,
           }}
         />
-        <script
-          async
-          crossOrigin="anonymous"
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4861541956465835"
-        />
-      </head>
-      <body>
         <SessionProvider>
           <Suspense fallback={null}>
             <NavigationFeedback />
