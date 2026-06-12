@@ -10,3 +10,4 @@ package-lock.json
 backups/
 storage/
 apps/api/storage/
+apps/web/tsconfig.tsbuildinfo
