@@ -25,6 +25,11 @@ enum UserStatus {
   INVITED
 }
 
+enum AccountTokenType {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+}
+
 enum MembershipStatus {
   ACTIVE
   SUSPENDED
@@ -105,6 +110,11 @@ enum InviteStatus {
   CANCELLED
 }
 
+enum RfqMessageVisibility {
+  BUYER_SUPPLIER
+  INTERNAL
+}
+
 model Organization {
   id          String             @id @default(cuid())
   name        String
@@ -130,16 +140,18 @@ model User {
   id             String     @id @default(cuid())
   email          String     @unique
   name           String
-  passwordHash   String     @default("dev-placeholder-hash")
+  passwordHash   String
   status         UserStatus @default(ACTIVE)
   role           RoleKey    @default(VIEWER)
   organizationId String?
   organization   Organization? @relation("LegacyUserOrganization", fields: [organizationId], references: [id])
+  emailVerifiedAt DateTime?
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
 
   memberships    OrganizationMembership[]
   sessions       UserSession[]
+  accountTokens  AccountToken[]
   createdRfqs    Rfq[]      @relation("CreatedRfqs")
   auditLogs      AuditLog[]
   createdSupportTickets  SupportTicket[] @relation("CreatedSupportTickets")
@@ -214,6 +226,20 @@ model UserSession {
   updatedAt            DateTime      @updatedAt
 
   @@index([userId, revokedAt])
+}
+
+model AccountToken {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id])
+  type      AccountTokenType
+  tokenHash String           @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  @@index([userId, type, usedAt])
+  @@index([expiresAt])
 }
 
 model MembershipPlan {
@@ -347,6 +373,7 @@ model Rfq {
   matches               SupplierMatch[]
   award                 Award?
   auditLogs             AuditLog[]
+  messages              RfqMessage[]
 }
 
 model RfqLineItem {
@@ -404,10 +431,33 @@ model Quote {
   status            QuoteStatus      @default(SUBMITTED)
   technicalResponse Json?
   commercialNotes   String?
+  supportingDocuments Json?
   submittedAt       DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
 
   award             Award?
+}
+
+model RfqMessage {
+  id                     String               @id @default(cuid())
+  rfqId                  String
+  rfq                    Rfq                  @relation(fields: [rfqId], references: [id])
+  supplierProfileId      String?
+  quoteId                String?
+  senderUserId           String
+  senderUserName         String
+  senderOrganizationId   String
+  senderOrganizationName String
+  senderOrganizationType OrganizationType
+  subject                String?
+  body                   String
+  visibility             RfqMessageVisibility @default(BUYER_SUPPLIER)
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
+
+  @@index([rfqId, createdAt])
+  @@index([supplierProfileId, createdAt])
+  @@index([quoteId])
 }
 
 model Award {

@@ -7,6 +7,7 @@ import {
   RoleKey,
   SupportTicketPriority,
   SupportTicketStatus,
+  SupplierVerificationStatus,
   UserStatus,
 } from '@prisma/client';
 import { IsArray, IsEnum, IsOptional, IsString } from 'class-validator';
@@ -42,6 +43,11 @@ class UpdateOrganizationStatusDto {
 class AssignOrganizationPlanDto {
   @IsEnum(PlanKey)
   planKey!: PlanKey;
+}
+
+class UpdateSupplierVerificationDto {
+  @IsEnum(SupplierVerificationStatus)
+  verificationStatus!: SupplierVerificationStatus;
 }
 
 class UpdateMembershipPlanDto {
@@ -237,6 +243,15 @@ export class AdminController {
     @CurrentTenant() tenant: TenantContext,
   ) {
     return this.admin.assignOrganizationPlan(id, dto.planKey, tenant);
+  }
+
+  @Patch('organizations/:id/supplier-verification')
+  updateSupplierVerification(
+    @Param('id') id: string,
+    @Body() dto: UpdateSupplierVerificationDto,
+    @CurrentTenant() tenant: TenantContext,
+  ) {
+    return this.admin.updateSupplierVerification(id, dto.verificationStatus, tenant);
   }
 
   @Get('users')

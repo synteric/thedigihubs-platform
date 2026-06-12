@@ -75,7 +75,7 @@ export class SubscriptionService {
       },
     });
 
-    await this.notifications.sendToSupport({
+    void this.notifications.sendToSupport({
       subject: `TheDigiHubs subscription request: ${request.organizationName} (${request.selectedPlan})`,
       replyTo: request.email,
       text: [
@@ -94,6 +94,25 @@ export class SubscriptionService {
         '',
         request.notes ? `Notes:\n${request.notes}` : null,
       ].filter(Boolean).join('\n'),
+    });
+
+    void this.notifications.sendEmail({
+      to: request.email,
+      subject: `TheDigiHubs received your ${request.selectedPlan} plan request`,
+      text: [
+        `Hello ${request.name},`,
+        '',
+        `Thank you for requesting access to the ${request.selectedPlan} plan on TheDigiHubs.`,
+        '',
+        `Organization: ${request.organizationName}`,
+        `Status: Pending admin review`,
+        '',
+        `Our team will review the request and assign the correct platform access for your plan.`,
+        '',
+        `For questions, contact ${this.notifications.supportEmail()}.`,
+        '',
+        'TheDigiHubs Support',
+      ].join('\n'),
     });
 
     return request;
@@ -150,7 +169,7 @@ export class SubscriptionService {
 
     const reviewedAt = input.status === SubscriptionRequestStatus.PENDING_REVIEW ? null : new Date();
 
-    return this.prisma.$transaction(async (tx) => {
+    const reviewedRequest = await this.prisma.$transaction(async (tx) => {
       let assignmentApplied = false;
 
       if (input.status === SubscriptionRequestStatus.APPROVED) {
@@ -217,6 +236,26 @@ export class SubscriptionService {
         assignmentApplied,
       };
     });
+
+    void this.notifications.sendEmail({
+      to: reviewedRequest.email,
+      subject: `TheDigiHubs plan request ${reviewedRequest.status.toLowerCase().replace(/_/g, ' ')}`,
+      text: [
+        `Hello ${reviewedRequest.name},`,
+        '',
+        `Your ${reviewedRequest.selectedPlan} plan request for ${reviewedRequest.organizationName} has been reviewed.`,
+        '',
+        `Status: ${reviewedRequest.status}`,
+        reviewedRequest.assignmentApplied ? `Access update: Your plan access has been assigned.` : null,
+        reviewedRequest.decisionNote ? `Admin note: ${reviewedRequest.decisionNote}` : null,
+        '',
+        `For questions, contact ${this.notifications.supportEmail()}.`,
+        '',
+        'TheDigiHubs Support',
+      ].filter(Boolean).join('\n'),
+    });
+
+    return reviewedRequest;
   }
 
   private clean(value?: string) {

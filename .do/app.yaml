@@ -42,6 +42,10 @@ services:
         value: SET_IN_DIGITALOCEAN
         type: SECRET
         scope: RUN_AND_BUILD_TIME
+      - key: AUTH_SECRET
+        value: SET_IN_DIGITALOCEAN
+        type: SECRET
+        scope: RUN_AND_BUILD_TIME
       - key: FRONTEND_URL
         value: https://www.thedigihubs.com
         scope: RUN_AND_BUILD_TIME
@@ -53,4 +57,29 @@ services:
         scope: RUN_AND_BUILD_TIME
       - key: PORT
         value: "4000"
+        scope: RUN_AND_BUILD_TIME
+      - key: DOCUMENT_STORAGE_DIR
+        value: /app/storage/documents
+        scope: RUN_AND_BUILD_TIME
+      - key: NOTIFICATION_DELIVERY_ENABLED
+        value: "true"
+        scope: RUN_AND_BUILD_TIME
+      - key: EMAIL_PROVIDER
+        value: resend
+        scope: RUN_AND_BUILD_TIME
+      - key: RESEND_API_KEY
+        value: SET_IN_DIGITALOCEAN
+        type: SECRET
+        scope: RUN_AND_BUILD_TIME
+      - key: MAIL_FROM
+        value: "TheDigiHubs <support@thedigihubs.com>"
+        scope: RUN_AND_BUILD_TIME
+      - key: SUPPORT_EMAIL
+        value: support@thedigihubs.com
+        scope: RUN_AND_BUILD_TIME
+      - key: CONTACT_EMAIL
+        value: support@thedigihubs.com
+        scope: RUN_AND_BUILD_TIME
+      - key: PLATFORM_ADMIN_EMAIL
+        value: support@thedigihubs.com
         scope: RUN_AND_BUILD_TIME

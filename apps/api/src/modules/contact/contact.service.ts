@@ -51,7 +51,7 @@ export class ContactService {
       },
     });
 
-    await this.notifications.sendToSupport({
+    void this.notifications.sendToSupport({
       subject: `TheDigiHubs contact: ${subject}`,
       replyTo: email,
       text: [
@@ -66,6 +66,23 @@ export class ContactService {
         `Message:`,
         message,
       ].filter(Boolean).join('\n'),
+    });
+
+    void this.notifications.sendEmail({
+      to: email,
+      subject: `We received your TheDigiHubs message (${ticket.reference})`,
+      text: [
+        `Hello ${name},`,
+        '',
+        `Thank you for contacting TheDigiHubs. We received your message and our support team will review it.`,
+        '',
+        `Reference: ${ticket.reference}`,
+        `Subject: ${subject}`,
+        '',
+        `You can also reach us directly at ${this.notifications.supportEmail()}.`,
+        '',
+        'TheDigiHubs Support',
+      ].join('\n'),
     });
 
     return {

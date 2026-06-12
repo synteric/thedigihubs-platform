@@ -1,4 +1,5 @@
 import bcrypt from 'bcryptjs';
+import { randomBytes } from 'node:crypto';
 import {
   MembershipStatus,
   OrganizationStatus,
@@ -14,11 +15,14 @@ const prisma = new PrismaClient();
 
 const legacyPlatformAdminEmail = 'admin@thedigihubs.com';
 const platformAdminEmail = process.env.PLATFORM_ADMIN_EMAIL?.trim().toLowerCase() || 'support@thedigihubs.com';
+const seedBuyerEmail = process.env.SEED_BUYER_EMAIL?.trim().toLowerCase() || 'sample-buyer@thedigihubs.local';
+const seedSupplierEmail = process.env.SEED_SUPPLIER_EMAIL?.trim().toLowerCase() || 'sample-supplier@thedigihubs.local';
+const generatedSamplePassword = `${randomBytes(24).toString('base64url')}Aa1!`;
 
 const devPasswords = {
-  admin: process.env.PLATFORM_ADMIN_PASSWORD || 'AdminPass123!',
-  buyer: 'BuyerPass123!',
-  supplier: 'SupplierPass123!',
+  admin: process.env.PLATFORM_ADMIN_PASSWORD || generatedSamplePassword,
+  buyer: process.env.SEED_BUYER_PASSWORD || process.env.SEED_SAMPLE_PASSWORD || generatedSamplePassword,
+  supplier: process.env.SEED_SUPPLIER_PASSWORD || process.env.SEED_SAMPLE_PASSWORD || generatedSamplePassword,
 };
 
 const permissions = [
@@ -279,7 +283,7 @@ async function main() {
   });
 
   const buyerUser = await upsertUserWithMembership({
-    email: 'buyer@demo.com',
+    email: seedBuyerEmail,
     name: 'Alex Morgan',
     password: devPasswords.buyer,
     roleKey: RoleKey.BUYER_MANAGER,
@@ -287,7 +291,7 @@ async function main() {
   });
 
   await upsertUserWithMembership({
-    email: 'supplier@demo.com',
+    email: seedSupplierEmail,
     name: 'Sarah Chen',
     password: devPasswords.supplier,
     roleKey: RoleKey.SUPPLIER_OWNER,

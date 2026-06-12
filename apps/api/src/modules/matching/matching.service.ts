@@ -1,5 +1,5 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { OrganizationType, RoleKey } from '@prisma/client';
+import { OrganizationStatus, OrganizationType, RoleKey, SupplierVerificationStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import type { TenantContext } from '../auth/auth.types';
 
@@ -16,7 +16,13 @@ export class MatchingService {
       }
     }
 
-    const suppliers = await this.prisma.supplierProfile.findMany({ include: { organization: true } });
+    const suppliers = await this.prisma.supplierProfile.findMany({
+      where: {
+        verificationStatus: { not: SupplierVerificationStatus.SUSPENDED },
+        organization: { status: OrganizationStatus.ACTIVE },
+      },
+      include: { organization: true },
+    });
     const results = suppliers.map((supplier) => {
       const categoryScore = supplier.categories.includes(rfq.category) ? 30 : 0;
       const countryScore = supplier.countriesServed.includes(rfq.country) ? 20 : 0;

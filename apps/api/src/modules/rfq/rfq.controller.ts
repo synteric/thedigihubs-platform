@@ -1,6 +1,6 @@
-import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { RoleKey } from '@prisma/client';
-import { IsIn, IsNumber, IsObject, IsOptional, IsString, Min } from 'class-validator';
+import { IsArray, IsIn, IsNumber, IsObject, IsOptional, IsString, Min } from 'class-validator';
 import { CurrentTenant, Permissions, PlanFeatures, Roles } from '../auth/auth.decorators';
 import { AuthGuard } from '../auth/auth.guard';
 import { PermissionGuard } from '../auth/permission.guard';
@@ -40,6 +40,10 @@ class SupplierQuoteDto {
   technicalResponse?: Record<string, unknown>;
 
   @IsOptional()
+  @IsArray()
+  supportingDocuments?: Array<Record<string, unknown>>;
+
+  @IsOptional()
   @IsIn(['DRAFT', 'SUBMITTED'])
   status?: 'DRAFT' | 'SUBMITTED';
 }
@@ -60,6 +64,23 @@ class AwardQuoteDto {
   @IsOptional()
   @IsString()
   decisionNote?: string;
+}
+
+class RfqMessageDto {
+  @IsString()
+  body!: string;
+
+  @IsOptional()
+  @IsString()
+  subject?: string;
+
+  @IsOptional()
+  @IsString()
+  supplierProfileId?: string;
+
+  @IsOptional()
+  @IsString()
+  quoteId?: string;
 }
 
 @Controller('rfqs')
@@ -138,6 +159,36 @@ export class RfqController {
   @Post(':id/quotes')
   submitSupplierQuote(@Param('id') id: string, @Body() dto: SupplierQuoteDto, @CurrentTenant() tenant: TenantContext) {
     return this.rfqs.submitSupplierQuote(id, dto, tenant);
+  }
+
+  @UseGuards(AuthGuard, TenantGuard, RoleGuard, PermissionGuard)
+  @Roles(
+    RoleKey.BUYER_OWNER,
+    RoleKey.BUYER_MANAGER,
+    RoleKey.BUYER_EVALUATOR,
+    RoleKey.SUPPLIER_OWNER,
+    RoleKey.SUPPLIER_MANAGER,
+    RoleKey.SUPPLIER_STAFF,
+  )
+  @Permissions('rfqs.read')
+  @Get(':id/messages')
+  listMessages(@Param('id') id: string, @CurrentTenant() tenant: TenantContext, @Query('supplierProfileId') supplierProfileId?: string) {
+    return this.rfqs.listMessages(id, tenant, supplierProfileId);
+  }
+
+  @UseGuards(AuthGuard, TenantGuard, RoleGuard, PermissionGuard)
+  @Roles(
+    RoleKey.BUYER_OWNER,
+    RoleKey.BUYER_MANAGER,
+    RoleKey.BUYER_EVALUATOR,
+    RoleKey.SUPPLIER_OWNER,
+    RoleKey.SUPPLIER_MANAGER,
+    RoleKey.SUPPLIER_STAFF,
+  )
+  @Permissions('rfqs.read')
+  @Post(':id/messages')
+  createMessage(@Param('id') id: string, @Body() dto: RfqMessageDto, @CurrentTenant() tenant: TenantContext) {
+    return this.rfqs.createMessage(id, dto, tenant);
   }
 
   @UseGuards(AuthGuard, TenantGuard)

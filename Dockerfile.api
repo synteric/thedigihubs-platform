@@ -21,6 +21,9 @@ RUN pnpm --filter @thedigihubs/api build
 
 ENV NODE_ENV=production
 ENV PORT=4000
+ENV DOCUMENT_STORAGE_DIR=/app/storage/documents
+
+RUN mkdir -p /app/storage/documents
 
 EXPOSE 4000
 

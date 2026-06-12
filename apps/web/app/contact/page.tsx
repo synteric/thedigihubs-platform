@@ -58,11 +58,11 @@ export default function ContactPage() {
     <main className="min-h-screen bg-[#F8FBFF] text-[#0B1744]">
       <PublicHeader />
 
-      <section className="px-6 py-12 lg:px-10">
+      <section className="px-4 py-10 sm:px-6 sm:py-12 lg:px-10">
         <div className="mx-auto grid max-w-[1240px] gap-8 lg:grid-cols-[.85fr_1.15fr]">
           <div className="pt-6">
             <p className="text-xs font-black uppercase tracking-[.22em] text-[#155EEF]">Contact TheDigiHubs</p>
-            <h1 className="mt-4 max-w-2xl text-5xl font-black leading-tight tracking-[-.04em] text-[#0B1744]">
+            <h1 className="mt-4 max-w-2xl text-3xl font-black leading-tight tracking-[-.04em] text-[#0B1744] sm:text-5xl">
               Speak with the team about your procurement platform needs.
             </h1>
             <p className="mt-5 max-w-xl text-lg font-semibold leading-8 text-slate-600">
@@ -89,7 +89,7 @@ export default function ContactPage() {
           <Card className="overflow-hidden p-0">
             <div className="border-b border-[#DFE9F7] bg-white p-6">
               <p className="text-xs font-black uppercase tracking-[.2em] text-[#155EEF]">Send a message</p>
-              <h2 className="mt-2 text-3xl font-black tracking-[-.03em]">Contact form</h2>
+              <h2 className="mt-2 text-2xl font-black tracking-[-.03em] sm:text-3xl">Contact form</h2>
               <p className="mt-2 text-sm font-semibold text-slate-500">All contact form information routes to support@thedigihubs.com.</p>
             </div>
 

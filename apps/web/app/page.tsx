@@ -13,6 +13,8 @@ import {
   Sparkles,
   UsersRound,
 } from 'lucide-react';
+import { LanguageSelector } from '../components/language-selector';
+const LanguageIcon = ((props: any) => <LanguageSelector />) as unknown as LucideIcon;
 import { Logo } from '../components/brand';
 import { PublicHeader } from '../components/public-header';
 import { Card, SectionTitle } from '../components/ui';
@@ -72,7 +74,7 @@ const heroCards: Array<IconCard & { className: string }> = [
   {
     title: 'Collaboration Hub',
     body: 'Work with your team and suppliers in real time',
-    icon: Globe2,
+    icon: LanguageIcon,
     tone: 'purple',
     className: 'right-[8%] bottom-7 w-[300px]',
   },
@@ -115,7 +117,7 @@ const outcomes: IconCard[] = [
   {
     title: 'Improve Sustainability',
     body: 'Track impact and source responsibly.',
-    icon: Globe2,
+    icon: LanguageIcon,
     tone: 'yellow',
   },
   {
@@ -160,7 +162,7 @@ const modules: IconCard[] = [
   {
     title: 'Supplier Collaboration',
     body: 'Work together seamlessly in real time',
-    icon: Globe2,
+    icon: LanguageIcon,
     tone: 'purple',
   },
   {
@@ -223,7 +225,7 @@ function HeroMapBackdrop() {
 
 function FloatingCard({ title, body, className, icon: Icon, tone }: IconCard & { className: string }) {
   return (
-    <div className={`absolute min-h-[82px] max-sm:!w-[46%] rounded-[18px] border border-[#D8E6F7] bg-white/95 p-2.5 shadow-[0_18px_44px_rgba(16,33,63,.13)] backdrop-blur sm:min-h-[104px] sm:rounded-[20px] sm:p-4 ${className}`}>
+    <div className={`absolute min-h-[76px] max-sm:!w-[48%] rounded-[18px] border border-[#D8E6F7] bg-white/95 p-2 shadow-[0_18px_44px_rgba(16,33,63,.13)] backdrop-blur sm:min-h-[104px] sm:rounded-[20px] sm:p-4 ${className}`}>
       <div className="flex items-center gap-2 sm:gap-4">
         <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-full sm:h-14 sm:w-14 ${toneStyles[tone]}`}>
           <Icon size={20} strokeWidth={2.25} />
@@ -358,7 +360,7 @@ export default function Home() {
         <div className="absolute right-0 top-24 h-[520px] w-[920px] rounded-full bg-blue-50 blur-3xl" />
         <div className="mx-auto grid max-w-[1540px] items-center gap-12 lg:grid-cols-[.76fr_1.24fr]">
           <div className="relative z-10">
-            <h1 className="max-w-[600px] text-4xl font-black leading-[1.08] tracking-[-0.045em] text-[#0B1744] sm:text-5xl lg:text-[56px]">
+            <h1 className="max-w-[600px] text-[2.2rem] font-black leading-[1.08] tracking-[-0.04em] text-[#0B1744] sm:text-5xl lg:text-[56px]">
               A trusted marketplace for buyers, suppliers, RFQs, and quotations.
             </h1>
             <p className="mt-6 max-w-[570px] text-lg font-medium leading-8 text-[#20345F]">
@@ -371,7 +373,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="relative h-[430px] overflow-hidden rounded-[30px] border border-[#DCE9F8] bg-gradient-to-br from-white via-[#F8FCFF] to-[#EEF7FF] shadow-[0_30px_80px_rgba(16,33,63,.1)] sm:h-[500px] lg:h-[clamp(500px,calc(100vh-218px),540px)]">
+          <div className="relative h-[360px] overflow-hidden rounded-[26px] border border-[#DCE9F8] bg-gradient-to-br from-white via-[#F8FCFF] to-[#EEF7FF] shadow-[0_30px_80px_rgba(16,33,63,.1)] sm:h-[500px] sm:rounded-[30px] lg:h-[clamp(500px,calc(100vh-218px),540px)]">
             <HeroMapBackdrop />
             <svg viewBox="0 0 720 540" className="absolute inset-0 h-full w-full" aria-hidden="true">
               <path d="M360 270 L360 80" stroke="#155EEF" strokeWidth="3" strokeDasharray="6 9" />
@@ -392,10 +394,10 @@ export default function Home() {
                 <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r="6" fill={String(color)} />
               ))}
             </svg>
-            <div className="absolute left-1/2 top-1/2 grid h-[120px] w-[120px] -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border border-[#DCEBFF] bg-white shadow-[0_24px_58px_rgba(21,94,239,.18)]">
+            <div className="absolute left-1/2 top-1/2 grid h-[96px] w-[96px] -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border border-[#DCEBFF] bg-white shadow-[0_24px_58px_rgba(21,94,239,.18)] sm:h-[120px] sm:w-[120px]">
               <div className="absolute -inset-4 rounded-full border border-[#BFD7FF]" />
               <div className="absolute -inset-1.5 rounded-full border border-[#DCEBFF]" />
-              <Logo markOnly markClassName="h-20 w-20" />
+              <Logo markOnly markClassName="h-16 w-16 sm:h-20 sm:w-20" />
             </div>
             {heroCards.map((card) => <FloatingCard key={card.title} {...card} />)}
           </div>
@@ -496,7 +498,7 @@ export default function Home() {
 
       <section className="bg-[#0D1847] px-4 py-16 text-white sm:px-8">
         <div className="text-center">
-          <h2 className="text-4xl font-black tracking-[-0.04em] text-white">Deliver better outcomes at every step</h2>
+          <h2 className="text-3xl font-black tracking-[-0.04em] text-white sm:text-4xl">Deliver better outcomes at every step</h2>
           <div className="mx-auto mt-4 h-1 w-24 rounded-full bg-[#FFB000]" />
         </div>
         <div className="mx-auto mt-10 grid max-w-[1320px] gap-5 lg:grid-cols-5">
@@ -507,7 +509,7 @@ export default function Home() {
       <section id="platform" className="bg-[#101A46] px-4 py-16 text-white sm:px-8">
         <div className="mx-auto grid max-w-[1320px] items-center gap-10 lg:grid-cols-[360px_1fr]">
           <div>
-            <h2 className="text-4xl font-black">TheDigiHubs Platform</h2>
+            <h2 className="text-3xl font-black sm:text-4xl">TheDigiHubs Platform</h2>
             <div className="mt-4 h-1 w-20 rounded bg-[#13B6D8]" />
             <p className="mt-6 leading-8 text-blue-100">
               An integrated platform that connects people, processes, and data across the entire procurement lifecycle.
@@ -599,8 +601,8 @@ export default function Home() {
       <section className="px-4 pb-8 sm:px-8">
         <Card className="mx-auto grid max-w-[1200px] grid-cols-1 items-center overflow-hidden border-0 bg-gradient-to-r from-[#17245D] to-[#155EEF] p-0 text-white shadow-[0_22px_58px_rgba(21,94,239,.18)] md:grid-cols-[320px_1fr]">
           <CtaWomanIllustration />
-          <div className="p-10">
-            <h2 className="text-4xl font-black tracking-[-0.04em]">Ready to transform your procurement?</h2>
+          <div className="p-6 sm:p-10">
+            <h2 className="text-3xl font-black tracking-[-0.04em] sm:text-4xl">Ready to transform your procurement?</h2>
             <p className="mt-4 max-w-2xl text-lg leading-8 text-blue-100">
               Join sourcing teams that save more, reduce risk, and deliver greater value with TheDigiHubs.
             </p>
@@ -611,8 +613,8 @@ export default function Home() {
         </Card>
       </section>
 
-      <footer className="bg-[#0D163F] px-8 py-12 text-white">
-        <div className="mx-auto grid max-w-[1320px] gap-8 lg:grid-cols-[340px_repeat(5,1fr)]">
+      <footer className="bg-[#0D163F] px-4 py-12 text-white sm:px-8">
+        <div className="mx-auto grid max-w-[1320px] gap-8 sm:grid-cols-2 lg:grid-cols-[340px_repeat(5,1fr)]">
           <div>
             <Logo light />
             <p className="mt-5 text-sm leading-6 text-blue-100">

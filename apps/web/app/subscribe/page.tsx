@@ -195,7 +195,7 @@ export default function SubscribePage() {
       <PublicHeader />
 
       <section className="bg-[#061F46] text-white">
-        <div className="mx-auto max-w-[1320px] px-6 py-8 lg:px-8">
+        <div className="mx-auto max-w-[1320px] px-4 py-8 sm:px-6 lg:px-8">
           <p className="inline-flex rounded-full border border-[#FFCF4D]/40 bg-[#FFCF4D]/10 px-4 py-1.5 text-xs font-black uppercase tracking-[.14em] text-[#FFCF4D]">
             Save 30% when you subscribe for 12 months
           </p>
@@ -210,7 +210,7 @@ export default function SubscribePage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-[1320px] px-6 py-8 lg:px-8">
+      <section className="mx-auto max-w-[1320px] px-4 py-8 sm:px-6 lg:px-8">
         <div className="text-center">
           <h2 className="text-2xl font-black tracking-[-0.03em]">Choose Your Plan</h2>
           <p className="mt-2 text-sm font-bold text-slate-500">All plan requests are reviewed by admin before access is assigned.</p>

@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { FormEvent, useState } from 'react';
 import { ArrowRight, Lock, Mail } from 'lucide-react';
@@ -48,10 +49,10 @@ export default function LoginPage() {
     <main className="min-h-screen bg-[#F8FBFF] text-[#0B1744]">
       <PublicHeader />
 
-      <section className="mx-auto grid max-w-[1180px] items-center gap-12 px-8 py-16 lg:grid-cols-[.95fr_.85fr]">
+      <section className="mx-auto grid max-w-[1180px] items-center gap-10 px-4 py-10 sm:px-8 sm:py-16 lg:grid-cols-[.95fr_.85fr]">
         <div>
           <p className="text-sm font-black uppercase tracking-[.18em] text-[#155EEF]">Secure workspace access</p>
-          <h1 className="mt-5 max-w-xl text-5xl font-black leading-[1.05] tracking-[-0.045em]">
+          <h1 className="mt-5 max-w-xl text-3xl font-black leading-[1.05] tracking-[-0.04em] sm:text-5xl">
             Sign in to your TheDigiHubs workspace.
           </h1>
           <p className="mt-6 max-w-xl text-lg leading-8 text-slate-600">
@@ -64,7 +65,7 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <Card className="p-7">
+        <Card className="p-5 sm:p-7">
           <form onSubmit={handleSubmit}>
             <h2 className="text-2xl font-black tracking-[-0.03em]">Sign in</h2>
             <p className="mt-2 text-sm leading-6 text-slate-600">Enter your workspace credentials to continue.</p>
@@ -94,7 +95,7 @@ export default function LoginPage() {
 
             <div className="mt-4 flex items-center justify-between text-sm font-bold">
               <span className="text-red-600">{error}</span>
-              <button type="button" className="text-[#155EEF]">Forgot password?</button>
+              <Link href="/forgot-password" className="text-[#155EEF]">Forgot password?</Link>
             </div>
 
             <Button className="mt-7 w-full" type="submit" disabled={loading}>

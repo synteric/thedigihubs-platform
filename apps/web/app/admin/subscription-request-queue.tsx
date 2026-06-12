@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { CheckCircle2, RefreshCw, XCircle } from 'lucide-react';
-import { apiFetch } from '../../lib/api';
+import { apiErrorMessage, apiFetch } from '../../lib/api';
 import { Card, Pill } from '../../components/ui';
 
 type SubscriptionRequestStatus = 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED';
@@ -48,7 +48,7 @@ export function SubscriptionRequestQueue() {
     try {
       const response = await apiFetch('/subscription-requests', { method: 'GET' });
       if (!response.ok) {
-        setMessage('Subscription requests could not be loaded.');
+        setMessage(await apiErrorMessage(response, 'Subscription requests could not be loaded.'));
         return;
       }
       setRequests(await response.json());
@@ -68,7 +68,7 @@ export function SubscriptionRequestQueue() {
         body: JSON.stringify({ status }),
       });
       if (!response.ok) {
-        setMessage('Unable to update subscription request.');
+        setMessage(await apiErrorMessage(response, 'Unable to update subscription request.'));
         return;
       }
       const updated = (await response.json()) as SubscriptionRequestItem;
@@ -118,7 +118,7 @@ export function SubscriptionRequestQueue() {
             </tr>
           </thead>
           <tbody className="font-bold">
-            {requests.slice(0, 6).map((request) => (
+            {requests.map((request) => (
               <tr key={request.id} className="border-t border-[#DFE9F7] align-top">
                 <td className="py-4">
                   {request.organizationName}

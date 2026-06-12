@@ -142,6 +142,13 @@ type AdminOrganizationRecord = {
       features: string[];
     };
   }>;
+  supplier: null | {
+    id: string;
+    verificationStatus: SupplierVerificationStatus;
+    rating: number;
+    completedContracts: number;
+    responseRate: number;
+  };
 };
 
 type AdminMembershipPlanRecord = {
@@ -1038,6 +1045,43 @@ export class AdminService {
     return this.organizationItem(updated);
   }
 
+  async updateSupplierVerification(id: string, verificationStatus: SupplierVerificationStatus, tenant: TenantContext) {
+    const organization = await this.prisma.organization.findUnique({
+      where: { id },
+      include: this.organizationInclude(new Date()),
+    });
+    if (!organization) {
+      throw new NotFoundException('Organization not found');
+    }
+    if (organization.type !== OrganizationType.SUPPLIER || !organization.supplier) {
+      throw new BadRequestException('Supplier verification can only be updated for supplier organizations');
+    }
+
+    await this.prisma.supplierProfile.update({
+      where: { organizationId: id },
+      data: { verificationStatus },
+    });
+
+    const updated = await this.prisma.organization.findUniqueOrThrow({
+      where: { id },
+      include: this.organizationInclude(new Date()),
+    });
+
+    await this.audit.record({
+      actorId: tenant.user.id,
+      action: 'ADMIN_SUPPLIER_VERIFICATION_UPDATED',
+      entity: 'SupplierProfile',
+      entityId: organization.supplier.id,
+      metadata: {
+        organizationName: organization.name,
+        previousVerificationStatus: organization.supplier.verificationStatus,
+        verificationStatus,
+      },
+    });
+
+    return this.organizationItem(updated);
+  }
+
   async users(query: UserQuery) {
     const now = new Date();
     const where = this.userWhere(query);
@@ -1320,7 +1364,7 @@ export class AdminService {
     delete statusWhere.status;
     delete priorityWhere.priority;
 
-    const [tickets, total, open, inProgress, waiting, resolved, closed, urgent, assignees] = await Promise.all([
+    const [tickets, total, open, inProgress, waiting, resolved, closed, urgent, accessReviews, assignees] = await Promise.all([
       this.prisma.supportTicket.findMany({
         where,
         take: 100,
@@ -1334,6 +1378,15 @@ export class AdminService {
       this.prisma.supportTicket.count({ where: { ...statusWhere, status: SupportTicketStatus.RESOLVED } }),
       this.prisma.supportTicket.count({ where: { ...statusWhere, status: SupportTicketStatus.CLOSED } }),
       this.prisma.supportTicket.count({ where: { ...priorityWhere, priority: SupportTicketPriority.URGENT } }),
+      this.prisma.supportTicket.count({
+        where: {
+          ...statusWhere,
+          category: 'Registration Review',
+          status: {
+            in: [SupportTicketStatus.OPEN, SupportTicketStatus.IN_PROGRESS, SupportTicketStatus.WAITING_ON_CUSTOMER],
+          },
+        },
+      }),
       this.prisma.user.findMany({
         where: this.platformSupportUserWhere(),
         orderBy: [{ name: 'asc' }, { email: 'asc' }],
@@ -1354,6 +1407,7 @@ export class AdminService {
         resolved,
         closed,
         urgent,
+        accessReviews,
       },
       assignees,
       tickets: tickets.map((ticket) => this.supportTicketItem(ticket)),
@@ -1877,6 +1931,15 @@ export class AdminService {
           startsAt: 'desc',
         },
       },
+      supplier: {
+        select: {
+          id: true,
+          verificationStatus: true,
+          rating: true,
+          completedContracts: true,
+          responseRate: true,
+        },
+      },
     } satisfies Prisma.OrganizationInclude;
   }
 
@@ -1895,6 +1958,13 @@ export class AdminService {
         key: plan.key,
         name: plan.name,
         features: plan.features,
+      } : null,
+      supplierProfile: organization.supplier ? {
+        id: organization.supplier.id,
+        verificationStatus: organization.supplier.verificationStatus,
+        rating: organization.supplier.rating,
+        completedContracts: organization.supplier.completedContracts,
+        responseRate: organization.supplier.responseRate,
       } : null,
       users: organization._count.memberships,
       rfqs: organization._count.buyerRfqs,

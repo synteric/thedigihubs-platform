@@ -54,6 +54,7 @@ type SupportTicketsResponse = {
     resolved: number;
     closed: number;
     urgent: number;
+    accessReviews: number;
   };
   assignees: Assignee[];
   tickets: SupportTicketItem[];
@@ -120,7 +121,7 @@ function SupportSidebarCard({ data }: { data: SupportTicketsResponse | null }) {
         <LifeBuoy className="text-[#155EEF]" />
         <div>
           <p className="font-black">Support Control</p>
-          <p className="text-xs text-slate-500">Review customer issues and ownership.</p>
+          <p className="text-xs text-slate-500">Review support and access requests.</p>
         </div>
       </div>
       <div className="mt-4 space-y-2 text-sm font-bold">
@@ -209,8 +210,6 @@ export function SupportTicketsManager() {
     }
   }
 
-  const activeCount = (data?.summary.open || 0) + (data?.summary.inProgress || 0) + (data?.summary.waiting || 0);
-
   return (
     <AppShell
       nav={adminNav('Support Tickets')}
@@ -222,7 +221,7 @@ export function SupportTicketsManager() {
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-black tracking-[-.03em]">Support Tickets</h1>
-          <p className="mt-2 text-slate-600">Triage customer issues, assign ownership, and record resolution notes.</p>
+          <p className="mt-2 text-slate-600">Triage support issues, registration reviews, ownership, and resolution notes.</p>
         </div>
         <button onClick={loadTickets} disabled={loading} className="inline-flex items-center gap-2 rounded-xl bg-[#155EEF] px-6 py-3 text-sm font-black text-white disabled:opacity-50">
           <RefreshCcw size={16} />
@@ -235,7 +234,7 @@ export function SupportTicketsManager() {
       <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
         <Kpi icon={<Ticket />} label="Matching Tickets" value={numberText(data?.total || 0)} change="Current filtered result" />
         <Kpi icon={<Inbox />} label="Open" value={numberText(data?.summary.open || 0)} change="New customer issues" tone="green" />
-        <Kpi icon={<Clock3 />} label="Needs Action" value={numberText(activeCount)} change="Open, active, or waiting" tone="orange" />
+        <Kpi icon={<Clock3 />} label="Access Reviews" value={numberText(data?.summary.accessReviews || 0)} change="Registration reviews awaiting admin" tone="orange" />
         <Kpi icon={<AlertTriangle />} label="Urgent" value={numberText(data?.summary.urgent || 0)} change="Priority review required" tone="purple" />
       </div>
 
@@ -246,7 +245,7 @@ export function SupportTicketsManager() {
             <input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search by ticket, requester, organization, category, or assignee"
+              placeholder="Search by ticket, requester, organization, category, access review, or assignee"
               className="h-12 w-full rounded-xl border border-[#DFE9F7] bg-white pl-11 pr-4 text-sm font-bold outline-none focus:border-[#155EEF]"
             />
           </label>
@@ -375,7 +374,7 @@ export function SupportTicketsManager() {
                 <tr>
                   <td colSpan={7} className="px-5 py-12 text-center">
                     <p className="font-black text-[#0B1744]">No support tickets match these filters.</p>
-                    <p className="mt-2 text-sm font-bold text-slate-500">When customers submit support requests, they will appear here for admin review.</p>
+                    <p className="mt-2 text-sm font-bold text-slate-500">When customers submit support, contact, or registration requests, they will appear here for admin review.</p>
                   </td>
                 </tr>
               )}

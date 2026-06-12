@@ -80,11 +80,11 @@ export default function ResourcesPage() {
     <main className="min-h-screen bg-[#F8FBFF] text-[#0B1744]">
       <PublicHeader />
 
-      <section className="px-8 py-16">
+      <section className="px-4 py-10 sm:px-8 sm:py-16">
         <div className="mx-auto grid max-w-[1320px] items-center gap-12 lg:grid-cols-[.88fr_1fr]">
           <div>
             <Pill tone="blue">Resources</Pill>
-            <h1 className="mt-6 max-w-2xl text-5xl font-black leading-[1.04] tracking-[-0.05em] lg:text-6xl">
+            <h1 className="mt-6 max-w-2xl text-4xl font-black leading-[1.04] tracking-[-0.045em] sm:text-5xl lg:text-6xl">
               Practical procurement resources for buyers and suppliers.
             </h1>
             <p className="mt-6 max-w-2xl text-lg font-semibold leading-8 text-slate-600">
@@ -124,7 +124,7 @@ export default function ResourcesPage() {
         </div>
       </section>
 
-      <section className="px-8 py-14">
+      <section className="px-4 py-12 sm:px-8 sm:py-14">
         <SectionTitle title="Choose the resource you need" subtitle="Each resource takes users to a proper page or workflow, not back to a landing page section." />
         <div className="mx-auto mt-10 grid max-w-[1180px] gap-5 md:grid-cols-2 lg:grid-cols-3">
           {resourceCards.map(({ title, body, href, cta, icon: Icon }) => (
@@ -142,11 +142,11 @@ export default function ResourcesPage() {
         </div>
       </section>
 
-      <section className="px-8 pb-16">
-        <div className="mx-auto grid max-w-[1180px] gap-6 rounded-[30px] border border-[#DFE9F7] bg-white p-8 shadow-[0_22px_60px_rgba(16,33,63,.08)] lg:grid-cols-[.9fr_1fr]">
+      <section className="px-4 pb-12 sm:px-8 sm:pb-16">
+        <div className="mx-auto grid max-w-[1180px] gap-6 rounded-[30px] border border-[#DFE9F7] bg-white p-6 shadow-[0_22px_60px_rgba(16,33,63,.08)] sm:p-8 lg:grid-cols-[.9fr_1fr]">
           <div>
             <Pill tone="orange">Plan review</Pill>
-            <h2 className="mt-5 text-4xl font-black tracking-[-0.04em]">Subscription requests are reviewed before access is assigned.</h2>
+            <h2 className="mt-5 text-3xl font-black tracking-[-0.04em] sm:text-4xl">Subscription requests are reviewed before access is assigned.</h2>
             <p className="mt-4 text-base font-semibold leading-7 text-slate-600">
               Users can choose a plan and complete the request form. Admin review then assigns the correct workspace access for the selected plan.
             </p>

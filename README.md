@@ -49,6 +49,8 @@ pnpm build:web
 pnpm build:api
 pnpm build:worker
 pnpm typecheck
+pnpm smoke:web
+pnpm smoke:api
 ```
 
 Docker shortcuts:
@@ -83,6 +85,22 @@ Docker dev containers now bind-mount the source folder so UI/code changes appear
 Run `pnpm db:doctor` when Prisma reports invalid database credentials. It starts Docker Postgres if needed, reads `.env`, asks the running database whether those credentials work, and prints whether the role/database/password are valid or mismatched.
 
 If Postgres reports invalid credentials during local setup on a fresh starter database, run `pnpm docker:db:reset`. This removes the local Docker Postgres volume for this project and recreates the seeded development database.
+
+Uploaded RFQ and quote documents are stored outside the source tree during local Docker development through the `document-storage` Docker volume. Local backup files and uploaded document folders are ignored by Git.
+
+Useful operations commands:
+
+```bash
+pnpm db:backup
+pnpm smoke:web
+pnpm smoke:api
+```
+
+Database restore is intentionally protected because it replaces data. To restore from a local backup, confirm the target database first, then run:
+
+```powershell
+$env:RESTORE_CONFIRM='YES'; pnpm db:restore backups\your-backup-file.dump
+```
 
 ## URLs
 
@@ -126,10 +144,19 @@ Backend component:
   - `DATABASE_URL`
   - `JWT_SECRET`
   - `JWT_REFRESH_SECRET`
+  - `AUTH_SECRET`
   - `FRONTEND_URL=https://www.thedigihubs.com`
   - `WEB_ORIGIN=https://www.thedigihubs.com`
   - `NODE_ENV=production`
   - `PORT=4000`
+  - `DOCUMENT_STORAGE_DIR=/app/storage/documents`
+  - `NOTIFICATION_DELIVERY_ENABLED=true`
+  - `EMAIL_PROVIDER=resend`
+  - `RESEND_API_KEY`
+  - `MAIL_FROM=TheDigiHubs <support@thedigihubs.com>`
+  - `SUPPORT_EMAIL=support@thedigihubs.com`
+  - `CONTACT_EMAIL=support@thedigihubs.com`
+  - `PLATFORM_ADMIN_EMAIL=support@thedigihubs.com`
 
 The existing local Docker development files are still used by VS Code and Docker Compose:
 
@@ -159,6 +186,8 @@ Local seeded platform admin:
 The API issues httpOnly session and refresh cookies from `/api/auth/login`. Protected app areas use the active organization, role, permissions, and plan returned by `/api/auth/me`.
 
 Support and contact routing defaults to `support@thedigihubs.com` through `SUPPORT_EMAIL`, `CONTACT_EMAIL`, and `PLATFORM_ADMIN_EMAIL`. Public contact form submissions are recorded as admin support tickets and sent to the configured support inbox when mail is available. Registration and subscription request notifications also route to the same inbox.
+
+For local Docker development, the API sends mail to Mailhog using `EMAIL_PROVIDER=smtp`, `MAIL_HOST=mailhog`, and `MAIL_PORT=1025`. For production on DigitalOcean, set `EMAIL_PROVIDER=resend`, add `RESEND_API_KEY` as a secret, and use a verified sender in `MAIL_FROM`. Email delivery is non-blocking: contact, registration, and subscription forms still complete even if the mail provider has a temporary issue.
 
 ## Key screens
 

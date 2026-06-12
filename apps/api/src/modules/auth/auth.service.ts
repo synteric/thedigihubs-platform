@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { MembershipStatus, OrganizationStatus, OrganizationType, PlanKey, Prisma, RoleKey, UserStatus } from '@prisma/client';
+import { AccountTokenType, MembershipStatus, OrganizationStatus, OrganizationType, PlanKey, Prisma, RoleKey, SupportTicketPriority, UserStatus } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { createHash, randomBytes } from 'node:crypto';
 import { AuditService } from '../audit/audit.service';
@@ -12,6 +12,8 @@ const SESSION_COOKIE = 'tdh_session';
 const REFRESH_COOKIE = 'tdh_refresh';
 const SESSION_DAYS = 1;
 const REFRESH_DAYS = 14;
+const PASSWORD_RESET_MINUTES = 60;
+const EMAIL_VERIFICATION_DAYS = 7;
 
 type CookieResponse = {
   cookie: (name: string, value: string, options: Record<string, unknown>) => void;
@@ -67,6 +69,12 @@ type RegisterInput = {
   countriesServed?: string;
   phone?: string;
   website?: string;
+};
+
+type AccountTokenDelivery = {
+  ok: true;
+  message: string;
+  devToken?: string;
 };
 
 @Injectable()
@@ -150,6 +158,7 @@ export class AuthService {
     if (!name || !organizationName) {
       throw new BadRequestException('Name and organization are required');
     }
+    this.assertStrongPassword(input.password);
 
     const existingUser = await this.prisma.user.findUnique({
       where: { email },
@@ -226,9 +235,38 @@ export class AuthService {
         });
       }
 
+      const supportTicket = await tx.supportTicket.create({
+        data: {
+          subject: `Registration review: ${organizationName}`,
+          description: [
+            `New ${registrationType} registration for free sample access.`,
+            '',
+            `Name: ${name}`,
+            `Email: ${email}`,
+            `Organization: ${organizationName}`,
+            `Workspace type: ${organizationType}`,
+            `Starter plan assigned for sample access.`,
+            country ? `Country: ${country}` : null,
+            category ? `Category: ${category}` : null,
+            phone ? `Phone: ${phone}` : null,
+            website ? `Website: ${website}` : null,
+            '',
+            'Admin review: confirm organization details, access fit, and subscription follow-up path.',
+          ].filter(Boolean).join('\n'),
+          category: 'Registration Review',
+          priority: SupportTicketPriority.HIGH,
+          requesterName: name,
+          requesterEmail: email,
+          organizationId: organization.id,
+          createdById: user.id,
+        },
+      });
+
       return {
         userId: user.id,
         organizationId: organization.id,
+        supportTicketId: supportTicket.id,
+        supportTicketReference: supportTicket.reference,
       };
     });
 
@@ -270,11 +308,19 @@ export class AuthService {
         category,
         phone,
         website,
+        supportTicketReference: created.supportTicketReference,
       },
       ipAddress: request.ip,
     });
 
-    await this.notifications.sendToSupport({
+    const verificationToken = await this.createAccountToken(
+      user.id,
+      AccountTokenType.EMAIL_VERIFICATION,
+      this.daysFromNow(EMAIL_VERIFICATION_DAYS),
+    );
+    const verificationUrl = this.publicUrl(`/verify-email?token=${encodeURIComponent(verificationToken)}`);
+
+    void this.notifications.sendToSupport({
       subject: `TheDigiHubs registration: ${organizationName} (${registrationType})`,
       replyTo: email,
       text: [
@@ -285,6 +331,7 @@ export class AuthService {
         `Organization: ${organizationName}`,
         `Workspace type: ${organizationType}`,
         `Role: ${roleKey}`,
+        `Admin review ticket: ${created.supportTicketReference}`,
         country ? `Country: ${country}` : null,
         category ? `Category: ${category}` : null,
         phone ? `Phone: ${phone}` : null,
@@ -292,7 +339,165 @@ export class AuthService {
       ].filter(Boolean).join('\n'),
     });
 
+    void this.notifications.sendEmail({
+      to: email,
+      subject: 'Your TheDigiHubs workspace is ready',
+      text: [
+        `Hello ${name},`,
+        '',
+        `Your TheDigiHubs ${registrationType} workspace has been created for ${organizationName}.`,
+        '',
+        `Verify your email address: ${verificationUrl}`,
+        '',
+        `You can now sign in and start using the platform access available to your organization.`,
+        '',
+        `For plan upgrades or support, contact ${this.notifications.supportEmail()}.`,
+        '',
+        'TheDigiHubs Support',
+      ].join('\n'),
+    });
+
     return this.buildTenantContext(session.id, session.user, created.organizationId);
+  }
+
+  async requestPasswordReset(emailInput: string, request: { ip?: string }): Promise<AccountTokenDelivery> {
+    const email = emailInput.trim().toLowerCase();
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+      select: { id: true, email: true, name: true, status: true },
+    });
+
+    if (!user || user.status !== UserStatus.ACTIVE) {
+      return this.safeTokenResponse('If an active account exists, password reset instructions will be sent.');
+    }
+
+    const token = await this.createAccountToken(
+      user.id,
+      AccountTokenType.PASSWORD_RESET,
+      this.minutesFromNow(PASSWORD_RESET_MINUTES),
+    );
+    const resetUrl = this.publicUrl(`/reset-password?token=${encodeURIComponent(token)}`);
+
+    await this.audit.record({
+      actorId: user.id,
+      action: 'AUTH_PASSWORD_RESET_REQUESTED',
+      entity: 'User',
+      entityId: user.id,
+      metadata: { email: user.email },
+      ipAddress: request.ip,
+    });
+
+    void this.notifications.sendEmail({
+      to: user.email,
+      subject: 'Reset your TheDigiHubs password',
+      text: [
+        `Hello ${user.name},`,
+        '',
+        'Use the link below to reset your TheDigiHubs password. The link expires in 60 minutes.',
+        '',
+        resetUrl,
+        '',
+        'If you did not request this, you can ignore this message.',
+        '',
+        'TheDigiHubs Support',
+      ].join('\n'),
+    });
+
+    return this.safeTokenResponse('If an active account exists, password reset instructions will be sent.', token);
+  }
+
+  async resetPassword(token: string, password: string, request: { ip?: string }) {
+    this.assertStrongPassword(password);
+    const accountToken = await this.consumeAccountToken(token, AccountTokenType.PASSWORD_RESET);
+    const passwordHash = await bcrypt.hash(password, 12);
+
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: accountToken.userId },
+        data: { passwordHash },
+      }),
+      this.prisma.userSession.updateMany({
+        where: { userId: accountToken.userId, revokedAt: null },
+        data: { revokedAt: new Date() },
+      }),
+    ]);
+
+    await this.audit.record({
+      actorId: accountToken.userId,
+      action: 'AUTH_PASSWORD_RESET_COMPLETED',
+      entity: 'User',
+      entityId: accountToken.userId,
+      metadata: {},
+      ipAddress: request.ip,
+    });
+
+    return { ok: true, message: 'Password updated. Please log in again.' };
+  }
+
+  async requestEmailVerification(context: TenantContext, request: { ip?: string }): Promise<AccountTokenDelivery> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: context.user.id },
+      select: { id: true, email: true, name: true, emailVerifiedAt: true },
+    });
+
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+    if (user.emailVerifiedAt) {
+      return { ok: true, message: 'Email address is already verified.' };
+    }
+
+    const token = await this.createAccountToken(
+      user.id,
+      AccountTokenType.EMAIL_VERIFICATION,
+      this.daysFromNow(EMAIL_VERIFICATION_DAYS),
+    );
+    const verificationUrl = this.publicUrl(`/verify-email?token=${encodeURIComponent(token)}`);
+
+    await this.audit.record({
+      actorId: user.id,
+      action: 'AUTH_EMAIL_VERIFICATION_REQUESTED',
+      entity: 'User',
+      entityId: user.id,
+      metadata: { email: user.email },
+      ipAddress: request.ip,
+    });
+
+    void this.notifications.sendEmail({
+      to: user.email,
+      subject: 'Verify your TheDigiHubs email address',
+      text: [
+        `Hello ${user.name},`,
+        '',
+        'Use the link below to verify your TheDigiHubs email address.',
+        '',
+        verificationUrl,
+        '',
+        'TheDigiHubs Support',
+      ].join('\n'),
+    });
+
+    return this.safeTokenResponse('Verification instructions have been sent.', token);
+  }
+
+  async verifyEmail(token: string, request: { ip?: string }) {
+    const accountToken = await this.consumeAccountToken(token, AccountTokenType.EMAIL_VERIFICATION);
+
+    await this.prisma.user.update({
+      where: { id: accountToken.userId },
+      data: { emailVerifiedAt: new Date() },
+    });
+
+    await this.audit.record({
+      actorId: accountToken.userId,
+      action: 'AUTH_EMAIL_VERIFIED',
+      entity: 'User',
+      entityId: accountToken.userId,
+      metadata: {},
+      ipAddress: request.ip,
+    });
+
+    return { ok: true, message: 'Email address verified.' };
   }
 
   async me(context: TenantContext) {
@@ -535,6 +740,82 @@ export class AuthService {
     ]));
   }
 
+  private assertStrongPassword(password: string) {
+    const failures = [
+      password.length < 10 ? 'at least 10 characters' : null,
+      !/[a-z]/.test(password) ? 'a lowercase letter' : null,
+      !/[A-Z]/.test(password) ? 'an uppercase letter' : null,
+      !/[0-9]/.test(password) ? 'a number' : null,
+      !/[^A-Za-z0-9]/.test(password) ? 'a symbol' : null,
+    ].filter(Boolean);
+
+    if (failures.length) {
+      throw new BadRequestException(`Password must include ${failures.join(', ')}.`);
+    }
+  }
+
+  private async createAccountToken(userId: string, type: AccountTokenType, expiresAt: Date) {
+    const token = randomBytes(48).toString('base64url');
+    await this.prisma.accountToken.updateMany({
+      where: {
+        userId,
+        type,
+        usedAt: null,
+      },
+      data: {
+        usedAt: new Date(),
+      },
+    });
+    await this.prisma.accountToken.create({
+      data: {
+        userId,
+        type,
+        tokenHash: this.hashToken(token),
+        expiresAt,
+      },
+    });
+    return token;
+  }
+
+  private async consumeAccountToken(token: string, type: AccountTokenType) {
+    const tokenHash = this.hashToken(token.trim());
+    const accountToken = await this.prisma.accountToken.findFirst({
+      where: {
+        tokenHash,
+        type,
+        usedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+      select: { id: true, userId: true },
+    });
+
+    if (!accountToken) {
+      throw new BadRequestException('This account link is invalid or has expired.');
+    }
+
+    return this.prisma.accountToken.update({
+      where: { id: accountToken.id },
+      data: { usedAt: new Date() },
+      select: { id: true, userId: true },
+    });
+  }
+
+  private safeTokenResponse(message: string, token?: string): AccountTokenDelivery {
+    if (token && this.config.get<string>('NODE_ENV') !== 'production') {
+      return { ok: true, message, devToken: token };
+    }
+    return { ok: true, message };
+  }
+
+  private publicUrl(path: string) {
+    const baseUrl = this.config.get<string>('NEXT_PUBLIC_APP_URL')?.trim()
+      || this.config.get<string>('FRONTEND_URL')?.trim()
+      || this.config.get<string>('WEB_ORIGIN')?.trim()
+      || 'http://localhost:3000';
+    const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+    return `${baseUrl.replace(/\/$/, '')}${normalizedPath}`;
+  }
+
   private createTokenPair() {
     return {
       sessionToken: randomBytes(48).toString('base64url'),
@@ -549,6 +830,10 @@ export class AuthService {
 
   private daysFromNow(days: number) {
     return new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+  }
+
+  private minutesFromNow(minutes: number) {
+    return new Date(Date.now() + minutes * 60 * 1000);
   }
 
   private setAuthCookies(response: CookieResponse, sessionToken: string, refreshToken: string, expiresAt: Date, refreshExpiresAt: Date) {

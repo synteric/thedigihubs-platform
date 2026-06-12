@@ -45,12 +45,12 @@ export function Kpi({ icon, label, value, change, tone = 'blue' }: { icon: React
     purple: 'bg-violet-50 text-violet-600',
   };
   return (
-    <Card className="p-6">
+    <Card className="p-5 sm:p-6">
       <div className="flex items-center gap-4">
-        <div className={`grid h-14 w-14 place-items-center rounded-full ${tones[tone]}`}>{icon}</div>
+        <div className={`grid h-12 w-12 shrink-0 place-items-center rounded-full sm:h-14 sm:w-14 ${tones[tone]}`}>{icon}</div>
         <div>
           <p className="text-sm font-extrabold text-[#0B1744]">{label}</p>
-          <p className="mt-1 text-3xl font-black tracking-[-0.04em] text-[#0B1744]">{value}</p>
+          <p className="mt-1 text-2xl font-black tracking-[-0.04em] text-[#0B1744] sm:text-3xl">{value}</p>
           <p className="mt-1 text-xs font-bold text-emerald-600">↑ {change}</p>
         </div>
       </div>

@@ -6,7 +6,7 @@ import { BarChart3, Bell, BriefcaseBusiness, Building2, CalendarDays, FileText, 
 import { AppShell } from '../../components/app-shell';
 import { PlanAccessCard } from '../../components/plan-access-card';
 import { Card, Donut, Kpi, LineChart, Pill } from '../../components/ui';
-import { apiFetch } from '../../lib/api';
+import { apiErrorMessage, apiFetch } from '../../lib/api';
 import { useSession } from '../../lib/session';
 
 type BuyerRfqSummary = {
@@ -106,6 +106,9 @@ export default function BuyerDashboard() {
   const [rfqs, setRfqs] = useState<BuyerRfqSummary[]>([]);
   const [rfqsLoading, setRfqsLoading] = useState(true);
   const [rfqsError, setRfqsError] = useState('');
+  const [showAllRfqs, setShowAllRfqs] = useState(false);
+  const [showAllHighlights, setShowAllHighlights] = useState(false);
+  const [showAllActivity, setShowAllActivity] = useState(false);
   const dateRangeLabel = useMemo(() => formatRangeLabel(), []);
   const dashboardMetrics = useMemo(() => {
     const activeRfqs = rfqs.filter((rfq) => !['CLOSED', 'CANCELLED', 'AWARDED'].includes(rfq.status)).length;
@@ -120,6 +123,20 @@ export default function BuyerDashboard() {
       pendingAwards,
     };
   }, [rfqs]);
+  const quoteEvaluationRows = showAllRfqs ? rfqs : rfqs.slice(0, 5);
+  const evaluationHighlights = rfqs.filter((rfq) => rfq.quoteCount > 0);
+  const visibleEvaluationHighlights = showAllHighlights ? evaluationHighlights : evaluationHighlights.slice(0, 3);
+  const visibleActivity = showAllActivity ? rfqs : rfqs.slice(0, 5);
+  const pipelineStages = useMemo(() => ([
+    ['Draft', rfqs.filter((rfq) => rfq.status === 'DRAFT').length],
+    ['Published', rfqs.filter((rfq) => ['PUBLISHED', 'QUOTATION_OPEN'].includes(rfq.status)).length],
+    ['Closing Soon', rfqs.filter((rfq) => {
+      const daysLeft = Math.ceil((new Date(rfq.closingDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+      return !['CLOSED', 'CANCELLED', 'AWARDED'].includes(rfq.status) && daysLeft >= 0 && daysLeft <= 7;
+    }).length],
+    ['Evaluation', rfqs.filter((rfq) => rfq.quoteCount > 0 && !rfq.hasAward).length],
+    ['Awarded', rfqs.filter((rfq) => rfq.hasAward || rfq.status === 'AWARDED').length],
+  ]), [rfqs]);
 
   useEffect(() => {
     if (!session) return;
@@ -133,7 +150,7 @@ export default function BuyerDashboard() {
       try {
         const response = await apiFetch('/rfqs/buyer/rfqs', { method: 'GET' });
         if (!response.ok) {
-          throw new Error(`Unable to load buyer RFQs. Status ${response.status}.`);
+          throw new Error(await apiErrorMessage(response, `Unable to load buyer RFQs. Status ${response.status}.`));
         }
 
         const data = await response.json();
@@ -242,7 +259,7 @@ export default function BuyerDashboard() {
                   <td colSpan={6} className="py-8 text-center text-slate-500">No RFQs yet. Create and publish an RFQ to start receiving quotes.</td>
                 </tr>
               )}
-              {!rfqsLoading && !rfqsError && rfqs.slice(0, 5).map((rfq) => (
+              {!rfqsLoading && !rfqsError && quoteEvaluationRows.map((rfq) => (
                 <tr key={rfq.id} className="border-t border-[#DFE9F7]">
                   <td className="py-4 text-[#155EEF]">
                     {rfq.title}
@@ -269,16 +286,24 @@ export default function BuyerDashboard() {
               ))}
             </tbody>
           </table>
-          <p className="mt-3 text-sm font-black text-[#155EEF]">View all quote evaluations -&gt;</p>
+          {rfqs.length > 5 && (
+            <button type="button" onClick={() => setShowAllRfqs((current) => !current)} className="mt-3 text-sm font-black text-[#155EEF]">
+              {showAllRfqs ? 'Show fewer quote evaluations' : `View all ${rfqs.length} quote evaluations ->`}
+            </button>
+          )}
         </Card>
 
         <Card className="p-5">
           <div className="flex justify-between">
             <h2 className="text-xl font-black">Evaluation Highlights</h2>
-            <p className="text-sm font-black text-[#155EEF]">View all -&gt;</p>
+            {evaluationHighlights.length > 3 && (
+              <button type="button" onClick={() => setShowAllHighlights((current) => !current)} className="text-sm font-black text-[#155EEF]">
+                {showAllHighlights ? 'Show fewer' : 'View all ->'}
+              </button>
+            )}
           </div>
           {rfqsLoading && <p className="py-4 text-sm font-bold text-slate-500">Loading highlights...</p>}
-          {!rfqsLoading && rfqs.filter((rfq) => rfq.quoteCount > 0).slice(0, 3).map((rfq) => (
+          {!rfqsLoading && visibleEvaluationHighlights.map((rfq) => (
             <div key={rfq.id} className="border-b border-[#DFE9F7] py-4 last:border-0">
               <div className="flex justify-between">
                 <p className="font-black">{rfq.title}</p>
@@ -287,7 +312,7 @@ export default function BuyerDashboard() {
               <p className="text-sm text-slate-600">Lowest quote {formatMoney(rfq.lowestQuote, rfq.currency)} - {rfq.matchCount} matched suppliers</p>
             </div>
           ))}
-          {!rfqsLoading && rfqs.filter((rfq) => rfq.quoteCount > 0).length === 0 && (
+          {!rfqsLoading && evaluationHighlights.length === 0 && (
             <p className="py-4 text-sm font-bold text-slate-500">Evaluation highlights will appear when submitted quotes arrive.</p>
           )}
         </Card>
@@ -295,10 +320,14 @@ export default function BuyerDashboard() {
         <Card className="p-5">
           <div className="flex justify-between">
             <h2 className="text-xl font-black">Recent Activity</h2>
-            <p className="text-sm font-black text-[#155EEF]">View all -&gt;</p>
+            {rfqs.length > 5 && (
+              <button type="button" onClick={() => setShowAllActivity((current) => !current)} className="text-sm font-black text-[#155EEF]">
+                {showAllActivity ? 'Show fewer' : 'View all ->'}
+              </button>
+            )}
           </div>
           {rfqsLoading && <p className="py-4 text-sm font-bold text-slate-500">Loading recent activity...</p>}
-          {!rfqsLoading && rfqs.slice(0, 5).map((rfq) => (
+          {!rfqsLoading && visibleActivity.map((rfq) => (
             <div key={rfq.id} className="flex gap-3 border-b border-[#DFE9F7] py-3 last:border-0">
               <span className="grid h-9 w-9 place-items-center rounded-full bg-blue-50 text-[#155EEF]">
                 <Bell size={16} />
@@ -316,16 +345,12 @@ export default function BuyerDashboard() {
       <Card className="mt-5 p-5">
         <div className="flex justify-between">
           <h2 className="text-xl font-black">RFQ Pipeline</h2>
-          <p className="text-sm font-black text-[#155EEF]">View full pipeline -&gt;</p>
+          <Link href={canCreateRfq ? '/rfq/new' : '/subscribe'} className="text-sm font-black text-[#155EEF]">
+            {canCreateRfq ? 'Create RFQ ->' : 'Request access ->'}
+          </Link>
         </div>
-        <div className="mt-4 grid grid-cols-5 gap-4">
-          {[
-            ['Draft', '8'],
-            ['Published', '18'],
-            ['Closing Soon', '6'],
-            ['Evaluation', '12'],
-            ['Awarded', '7'],
-          ].map((stage) => (
+        <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          {pipelineStages.map((stage) => (
             <div key={stage[0]} className="rounded-2xl border border-[#DFE9F7] bg-white p-4">
               <p className="text-sm font-black">{stage[0]}</p>
               <p className="mt-1 text-3xl font-black">{stage[1]}</p>

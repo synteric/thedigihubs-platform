@@ -7,3 +7,6 @@ coverage
 *.log
 prisma/dev.db
 package-lock.json
+backups/
+storage/
+apps/api/storage/

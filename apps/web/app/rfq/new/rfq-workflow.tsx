@@ -19,7 +19,8 @@ import {
 import { AppShell } from '../../../components/app-shell';
 import { PlanAccessCard } from '../../../components/plan-access-card';
 import { Card, Pill } from '../../../components/ui';
-import { apiFetch } from '../../../lib/api';
+import { apiErrorMessage, apiFetch } from '../../../lib/api';
+import { uploadDocument } from '../../../lib/documents';
 import { useSession } from '../../../lib/session';
 
 const nav = [
@@ -60,6 +61,9 @@ type WorkflowFile = {
   label: string;
   type: string;
   badge: string;
+  file?: File;
+  storageKey?: string;
+  url?: string;
 };
 
 type SaveState = 'idle' | 'saving' | 'matching' | 'saved' | 'matched' | 'error';
@@ -121,6 +125,9 @@ function payloadFor(files: WorkflowFile[], notes: string, externalInvites: strin
       name: file.name,
       size: file.size,
       type: file.type,
+      category: 'RFQ Document',
+      storageKey: file.storageKey,
+      url: file.url,
     })),
     externalInvites: externalInvites.map((email) => ({ email })),
     lineItems: [
@@ -161,6 +168,7 @@ export function RfqWorkflow() {
       label: formatFileSize(file.size),
       type: file.type || 'application/octet-stream',
       badge: fileBadge(file),
+      file,
     }));
 
     setFiles((currentFiles) => {
@@ -185,14 +193,28 @@ export function RfqWorkflow() {
     setCreatedRfqId('');
 
     try {
+      const uploadedFiles = await Promise.all(files.map(async (file) => {
+        if (!file.file || file.url) return file;
+        const uploaded = await uploadDocument(file.file, 'RFQ Document');
+        return {
+          ...file,
+          size: uploaded.size,
+          type: uploaded.type || file.type,
+          storageKey: uploaded.storageKey,
+          url: uploaded.url,
+          file: undefined,
+        };
+      }));
+      setFiles(uploadedFiles);
+
       const response = await apiFetch('/rfqs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payloadFor(files, notes, externalInvites, mode === 'matching')),
+        body: JSON.stringify(payloadFor(uploadedFiles, notes, externalInvites, mode === 'matching')),
       });
 
       if (!response.ok) {
-        throw new Error(`RFQ request failed with status ${response.status}`);
+        throw new Error(await apiErrorMessage(response, `RFQ request failed with status ${response.status}`));
       }
 
       const rfq = await response.json();
@@ -205,7 +227,7 @@ export function RfqWorkflow() {
         });
 
         if (!publishResponse.ok) {
-          throw new Error(`RFQ publish failed with status ${publishResponse.status}`);
+          throw new Error(await apiErrorMessage(publishResponse, `RFQ publish failed with status ${publishResponse.status}`));
         }
 
         const matchedSuppliers = rfq.matching?.matches?.length || 0;
@@ -232,14 +254,14 @@ export function RfqWorkflow() {
         requiredRoles={['BUYER_OWNER', 'BUYER_MANAGER']}
       >
         <PlanAccessCard className="mb-5" activeHref="/buyer" />
-        <Card className="p-8">
+        <Card className="p-5 sm:p-8">
           <div className="max-w-3xl">
             <p className="text-sm font-black uppercase tracking-[.16em] text-[#155EEF]">Plan access required</p>
             <h1 className="mt-3 text-3xl font-black tracking-[-.03em]">RFQ creation is available after plan approval.</h1>
             <p className="mt-3 text-sm font-bold leading-7 text-slate-600">
               Your current access lets you preview sample workflows. Request full access to create and publish live RFQs.
             </p>
-            <div className="mt-6 flex gap-3">
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
               <Link href="/samples" className="rounded-xl border border-[#DFE9F7] bg-white px-5 py-3 text-sm font-black text-[#155EEF]">
                 View Samples
               </Link>
@@ -295,7 +317,7 @@ export function RfqWorkflow() {
             </div>
             <p className="mt-2 text-sm text-slate-600">Add any specifications, drawings, or supporting documents to help suppliers respond accurately.</p>
             <div
-              className="mt-6 cursor-pointer rounded-2xl border-2 border-dashed border-blue-200 bg-blue-50/30 p-8 text-center"
+              className="mt-6 cursor-pointer rounded-2xl border-2 border-dashed border-blue-200 bg-blue-50/30 p-5 text-center sm:p-8"
               onClick={() => fileInputRef.current?.click()}
               onDragOver={(event) => event.preventDefault()}
               onDrop={(event) => {
@@ -319,6 +341,7 @@ export function RfqWorkflow() {
                   <p className="text-xs text-slate-500">{file.label}</p>
                 </div>
                 <button
+                  type="button"
                   className="text-sm font-black text-[#155EEF]"
                   onClick={() => {
                     setReplaceIndex(index);
@@ -328,6 +351,7 @@ export function RfqWorkflow() {
                   Replace
                 </button>
                 <button
+                  type="button"
                   className="text-slate-500"
                   title="Remove file"
                   onClick={() => setFiles((currentFiles) => currentFiles.filter((_, fileIndex) => fileIndex !== index))}
@@ -400,9 +424,9 @@ export function RfqWorkflow() {
           <Card className="p-5">
             <div className="flex justify-between">
               <h3 className="font-black">Selected Suppliers (6)</h3>
-              <span className="text-sm font-black text-[#155EEF]">View all</span>
+              <span className="text-sm font-black text-slate-500">Auto-matched preview</span>
             </div>
-            {['Alpha Solutions', 'BlueWave Tech', 'Vertex Systems', 'Global Industrial Co.', 'Precision Equipments'].map((supplier) => (
+            {['Alpha Solutions', 'BlueWave Tech', 'Vertex Systems', 'Global Industrial Co.', 'Precision Equipments', 'Apex Supply Partners'].map((supplier) => (
               <p key={supplier} className="flex justify-between border-b border-[#DFE9F7] py-3 text-sm font-bold last:border-0">
                 {supplier}
                 <Pill tone="green">Matched</Pill>
@@ -417,6 +441,7 @@ export function RfqWorkflow() {
             </div>
             {externalInvites.map((email) => (
               <button
+                type="button"
                 key={email}
                 className="mt-3 block w-full rounded-lg bg-blue-50 px-3 py-2 text-left text-sm font-bold text-[#155EEF]"
                 onClick={() => setExternalInvites((currentInvites) => currentInvites.filter((invite) => invite !== email))}
@@ -442,7 +467,7 @@ export function RfqWorkflow() {
       </div>
 
       <div className="mt-7 flex flex-col gap-4 border-t border-[#DFE9F7] pt-5 lg:flex-row lg:items-center lg:justify-between">
-        <button className="rounded-xl border border-[#DFE9F7] bg-white px-6 py-3 font-black" onClick={() => window.history.back()}>← Back</button>
+        <button type="button" className="rounded-xl border border-[#DFE9F7] bg-white px-6 py-3 font-black" onClick={() => window.history.back()}>← Back</button>
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
           {message && (
             <div className={`max-w-[420px] text-left text-sm font-bold sm:text-right ${saveState === 'error' ? 'text-red-600' : 'text-emerald-700'}`}>
@@ -455,6 +480,7 @@ export function RfqWorkflow() {
             </div>
           )}
           <button
+            type="button"
             className="rounded-xl border border-[#DFE9F7] bg-white px-6 py-3 font-black disabled:opacity-60"
             disabled={saveState === 'saving' || saveState === 'matching'}
             onClick={() => createRfq('draft')}
@@ -466,6 +492,7 @@ export function RfqWorkflow() {
             Preview RFQ
           </Link>
           <button
+            type="button"
             className="rounded-xl bg-[#155EEF] px-7 py-3 font-black text-white disabled:opacity-60"
             disabled={saveState === 'saving' || saveState === 'matching'}
             onClick={() => createRfq('matching')}

@@ -92,6 +92,7 @@ export default function Supplier() {
   const [opportunities, setOpportunities] = useState<SupplierOpportunity[]>([]);
   const [opportunitiesLoading, setOpportunitiesLoading] = useState(true);
   const [opportunitiesError, setOpportunitiesError] = useState('');
+  const [showAllOpportunities, setShowAllOpportunities] = useState(false);
   const dateRangeLabel = useMemo(() => formatRangeLabel(), []);
   const opportunityMetrics = useMemo(() => {
     const submittedQuotes = opportunities.filter((opportunity) => opportunity.quoteStatus && opportunity.quoteStatus !== 'DRAFT').length;
@@ -130,6 +131,7 @@ export default function Supplier() {
     label: `${opportunity.reference} matched from ${opportunity.buyerName}`,
     time: deadlineLabel(opportunity.closingDate),
   })), [opportunities]);
+  const visibleOpportunities = showAllOpportunities ? opportunities : opportunities.slice(0, 5);
 
   useEffect(() => {
     if (!session) return;
@@ -206,7 +208,11 @@ export default function Supplier() {
         <Card className="overflow-x-auto p-5" id="matched-opportunities">
           <div className="mb-4 flex justify-between">
             <h2 className="text-xl font-black">Matched Opportunities</h2>
-            <Link href="#matched-opportunities" className="text-sm font-black text-[#155EEF]">View all opportunities →</Link>
+            {opportunities.length > 5 && (
+              <button type="button" onClick={() => setShowAllOpportunities((current) => !current)} className="text-sm font-black text-[#155EEF]">
+                {showAllOpportunities ? 'Show fewer opportunities' : `View all ${opportunities.length} opportunities ->`}
+              </button>
+            )}
           </div>
           <table className="min-w-[760px] w-full text-left text-sm">
             <thead className="text-xs text-slate-500">
@@ -235,7 +241,7 @@ export default function Supplier() {
                   <td colSpan={6} className="py-8 text-center text-slate-500">No matched opportunities yet. New buyer RFQs will appear here after supplier matching runs.</td>
                 </tr>
               )}
-              {!opportunitiesLoading && !opportunitiesError && opportunities.slice(0, 5).map((opportunity) => (
+              {!opportunitiesLoading && !opportunitiesError && visibleOpportunities.map((opportunity) => (
                 <tr key={opportunity.matchId} className="border-t border-[#DFE9F7]">
                   <td className="py-4 text-[#155EEF]">
                     {opportunity.reference}
@@ -286,7 +292,7 @@ export default function Supplier() {
                 <p className="text-orange-500">3 expiring documents ⚠</p>
               </div>
             </div>
-            <p className="mt-5 text-sm font-black text-[#155EEF]">Upload Documents →</p>
+            <p className="mt-5 rounded-xl bg-blue-50 px-4 py-3 text-sm font-black text-[#155EEF]">Documents are attached inside each RFQ quote workflow.</p>
           </Card>
 
           <Card className="p-5">
@@ -339,7 +345,7 @@ export default function Supplier() {
 
       <Card className="mt-5 p-5">
         <h2 className="text-xl font-black">Quote Pipeline</h2>
-        <div className="mt-4 grid grid-cols-5 gap-4">
+        <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           {[
             ['Ready to Quote', String(opportunityMetrics.readyToQuote)],
             ['Draft Quotes', String(opportunityMetrics.draftQuotes)],

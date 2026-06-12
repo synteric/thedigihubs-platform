@@ -22,7 +22,7 @@ class RegisterDto {
   email!: string;
 
   @IsString()
-  @MinLength(8)
+  @MinLength(10)
   password!: string;
 
   @IsString()
@@ -60,6 +60,27 @@ class SwitchOrganizationDto {
   organizationId!: string;
 }
 
+class RequestPasswordResetDto {
+  @IsEmail()
+  email!: string;
+}
+
+class ResetPasswordDto {
+  @IsString()
+  @IsNotEmpty()
+  token!: string;
+
+  @IsString()
+  @MinLength(10)
+  password!: string;
+}
+
+class VerifyEmailDto {
+  @IsString()
+  @IsNotEmpty()
+  token!: string;
+}
+
 @Controller('auth')
 export class AuthController {
   constructor(private readonly auth: AuthService) {}
@@ -72,6 +93,27 @@ export class AuthController {
   @Post('register')
   register(@Body() dto: RegisterDto, @Res({ passthrough: true }) response: any, @Req() request: any) {
     return this.auth.register(dto, response, request);
+  }
+
+  @Post('password-reset/request')
+  requestPasswordReset(@Body() dto: RequestPasswordResetDto, @Req() request: any) {
+    return this.auth.requestPasswordReset(dto.email, request);
+  }
+
+  @Post('password-reset/confirm')
+  resetPassword(@Body() dto: ResetPasswordDto, @Req() request: any) {
+    return this.auth.resetPassword(dto.token, dto.password, request);
+  }
+
+  @UseGuards(AuthGuard)
+  @Post('email-verification/request')
+  requestEmailVerification(@CurrentTenant() tenant: TenantContext, @Req() request: any) {
+    return this.auth.requestEmailVerification(tenant, request);
+  }
+
+  @Post('email-verification/confirm')
+  verifyEmail(@Body() dto: VerifyEmailDto, @Req() request: any) {
+    return this.auth.verifyEmail(dto.token, request);
   }
 
   @UseGuards(AuthGuard)

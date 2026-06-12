@@ -12,10 +12,12 @@ import {
   Building2,
   CheckCircle2,
   Clock3,
+  ExternalLink,
   FileText,
   Gauge,
   MessageSquare,
   Scale,
+  Send,
   Settings,
   ShieldCheck,
   Trophy,
@@ -23,7 +25,7 @@ import {
 } from 'lucide-react';
 import { AppShell } from '../../../../../components/app-shell';
 import { Card, Pill } from '../../../../../components/ui';
-import { apiFetch } from '../../../../../lib/api';
+import { apiErrorMessage, apiFetch, apiUrl } from '../../../../../lib/api';
 import { useSession } from '../../../../../lib/session';
 
 type ScoreSet = {
@@ -37,6 +39,7 @@ type ScoreSet = {
 
 type EvaluationQuote = {
   quoteId: string;
+  supplierProfileId?: string | null;
   rank: number;
   supplierName: string;
   quoteStatus: string;
@@ -48,6 +51,7 @@ type EvaluationQuote = {
   submittedAt: string;
   technicalSummary: string;
   commercialNotes?: string | null;
+  supportingDocuments?: QuoteDocument[];
   supplier: {
     verificationStatus: string;
     rating: number;
@@ -67,6 +71,32 @@ type EvaluationOutcome = {
   supplierName: string | null;
   quoteId: string | null;
   value: string | null;
+};
+
+type QuoteDocument = {
+  name: string;
+  type: string;
+  size?: string | number | null;
+  category?: string | null;
+  storageKey?: string | null;
+  url?: string | null;
+};
+
+type RfqMessage = {
+  id: string;
+  rfqId: string;
+  supplierProfileId?: string | null;
+  quoteId?: string | null;
+  senderUserId: string;
+  senderUserName: string;
+  senderOrganizationId: string;
+  senderOrganizationName: string;
+  senderOrganizationType: 'BUYER' | 'SUPPLIER' | 'PLATFORM';
+  subject?: string | null;
+  body: string;
+  visibility: string;
+  createdAt: string;
+  updatedAt: string;
 };
 
 type EvaluationResponse = {
@@ -135,6 +165,10 @@ function formatDate(value: string) {
   return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(value));
 }
 
+function formatMessageTime(value: string) {
+  return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(value));
+}
+
 function formatMoney(value: string | number | null | undefined, currency: string) {
   const amount = Number(value);
   if (!Number.isFinite(amount)) return '-';
@@ -148,6 +182,28 @@ function formatMoney(value: string | number | null | undefined, currency: string
   } catch {
     return `${currency} ${amount.toLocaleString('en-US')}`;
   }
+}
+
+function documentLabel(type: string) {
+  const normalized = type.toLowerCase();
+  if (normalized.includes('pdf')) return 'PDF';
+  if (normalized.includes('doc') || normalized.includes('word')) return 'DOCX';
+  if (normalized.includes('zip')) return 'ZIP';
+  return type && type.length <= 8 ? type.toUpperCase() : 'FILE';
+}
+
+function documentColor(type: string) {
+  const label = documentLabel(type);
+  if (label === 'PDF') return 'bg-red-500';
+  if (label === 'DOCX') return 'bg-[#155EEF]';
+  if (label === 'ZIP') return 'bg-orange-400';
+  return 'bg-slate-500';
+}
+
+function documentUrl(document: QuoteDocument) {
+  const rawUrl = document.url?.trim();
+  if (rawUrl) return rawUrl.startsWith('http') ? rawUrl : apiUrl(rawUrl);
+  return document.storageKey ? apiUrl(`/documents/${document.storageKey}`) : null;
 }
 
 function daysLeft(value: string) {
@@ -219,6 +275,7 @@ function QuoteRankingCard({ quote }: { quote: EvaluationQuote }) {
             ))}
             <Pill tone={toneForScore(quote.scores.overall)}>{quote.scores.overall}% overall</Pill>
           </div>
+          <p className="mt-3 text-xs font-bold text-slate-500">{quote.supportingDocuments?.length || 0} quote documents</p>
         </div>
         <div className="text-right">
           <p className="text-2xl font-black text-[#0B1744]">{formatMoney(quote.totalAmount, quote.currency)}</p>
@@ -236,6 +293,52 @@ function QuoteRankingCard({ quote }: { quote: EvaluationQuote }) {
   );
 }
 
+function QuoteDocumentReview({ quote }: { quote: EvaluationQuote }) {
+  const documents = quote.supportingDocuments || [];
+
+  return (
+    <div className="rounded-2xl border border-[#DFE9F7] bg-white p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="font-black text-[#0B1744]">{quote.supplierName}</p>
+          <p className="mt-1 text-xs font-bold text-slate-500">{documents.length} submitted document{documents.length === 1 ? '' : 's'}</p>
+        </div>
+        <Pill tone={documents.length ? 'green' : 'orange'}>{documents.length ? 'Ready for review' : 'Documents missing'}</Pill>
+      </div>
+      <div className="mt-4 space-y-3">
+        {documents.length === 0 && (
+          <p className="rounded-xl bg-orange-50 px-4 py-3 text-sm font-bold text-orange-700">Request proposal, pricing, compliance, or certification documents before award.</p>
+        )}
+        {documents.map((document, index) => {
+          const href = documentUrl(document);
+          return (
+            <div key={`${quote.quoteId}-${document.name}-${index}`} className="flex flex-col gap-3 rounded-xl border border-[#DFE9F7] p-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-3">
+                <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg text-[10px] font-black text-white ${documentColor(document.type)}`}>
+                  {documentLabel(document.type)}
+                </span>
+                <div>
+                  <p className="text-sm font-black text-[#0B1744]">{document.name}</p>
+                  <p className="mt-1 text-xs font-bold text-slate-500">
+                    {document.category || 'Quote Document'} {document.size ? `- ${document.size}` : ''}
+                  </p>
+                </div>
+              </div>
+              {href ? (
+                <a className="inline-flex items-center gap-2 rounded-lg border border-blue-200 bg-white px-3 py-2 text-xs font-black text-[#155EEF]" href={href} target="_blank" rel="noreferrer">
+                  Open <ExternalLink size={14} />
+                </a>
+              ) : (
+                <span className="inline-flex rounded-lg bg-slate-50 px-3 py-2 text-xs font-black text-slate-500">Registered</span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function QuoteEvaluationPage() {
   const params = useParams<{ id: string }>();
   const rfqId = params.id;
@@ -245,6 +348,10 @@ export default function QuoteEvaluationPage() {
   const [error, setError] = useState('');
   const [decisionNote, setDecisionNote] = useState('');
   const [actionQuoteId, setActionQuoteId] = useState('');
+  const [clarificationSending, setClarificationSending] = useState('');
+  const [messages, setMessages] = useState<RfqMessage[]>([]);
+  const [buyerMessageText, setBuyerMessageText] = useState('');
+  const [buyerMessageSending, setBuyerMessageSending] = useState(false);
   const [actionMessage, setActionMessage] = useState('');
   const [actionError, setActionError] = useState('');
 
@@ -256,6 +363,7 @@ export default function QuoteEvaluationPage() {
     if (!evaluation) return [];
     return evaluation.quotes.flatMap((quote) => quote.clarifications.map((question) => ({
       quoteId: quote.quoteId,
+      supplierProfileId: quote.supplierProfileId || null,
       supplierName: quote.supplierName,
       question,
     }))).slice(0, 8);
@@ -272,11 +380,17 @@ export default function QuoteEvaluationPage() {
     try {
       const response = await apiFetch(`/rfqs/${rfqId}/evaluation`, { method: 'GET' });
       if (!response.ok) {
-        throw new Error(`Unable to load Quote Evaluation. Status ${response.status}.`);
+        throw new Error(await apiErrorMessage(response, `Unable to load Quote Evaluation. Status ${response.status}.`));
       }
 
       const data = await response.json() as EvaluationResponse;
       setEvaluation(data);
+
+      const messagesResponse = await apiFetch(`/rfqs/${rfqId}/messages`, { method: 'GET' });
+      if (messagesResponse.ok) {
+        const messageData = await messagesResponse.json() as RfqMessage[];
+        setMessages(messageData);
+      }
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Unable to load Quote Evaluation.');
     } finally {
@@ -302,7 +416,7 @@ export default function QuoteEvaluationPage() {
       });
 
       if (!response.ok) {
-        throw new Error(`Unable to update quote decision. Status ${response.status}.`);
+        throw new Error(await apiErrorMessage(response, `Unable to update quote decision. Status ${response.status}.`));
       }
 
       setActionMessage(status === 'SHORTLISTED' ? `${quote.supplierName} shortlisted.` : `${quote.supplierName} rejected.`);
@@ -329,7 +443,7 @@ export default function QuoteEvaluationPage() {
       });
 
       if (!response.ok) {
-        throw new Error(`Unable to award quote. Status ${response.status}.`);
+        throw new Error(await apiErrorMessage(response, `Unable to award quote. Status ${response.status}.`));
       }
 
       setActionMessage(`${quote.supplierName} awarded.`);
@@ -341,6 +455,73 @@ export default function QuoteEvaluationPage() {
     }
   }
 
+  async function sendClarification(item: { quoteId: string; supplierProfileId: string | null; supplierName: string; question: string }) {
+    if (!item.supplierProfileId) {
+      setActionError('This supplier cannot receive platform clarification messages yet.');
+      return;
+    }
+
+    setClarificationSending(`${item.quoteId}:${item.question}`);
+    setActionMessage('');
+    setActionError('');
+
+    try {
+      const response = await apiFetch(`/rfqs/${rfqId}/messages`, {
+        method: 'POST',
+        body: JSON.stringify({
+          supplierProfileId: item.supplierProfileId,
+          quoteId: item.quoteId,
+          subject: 'Quote clarification request',
+          body: item.question,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(await apiErrorMessage(response, `Unable to send clarification. Status ${response.status}.`));
+      }
+
+      const message = await response.json() as RfqMessage;
+      setMessages((current) => [...current, message]);
+      setActionMessage(`Clarification sent to ${item.supplierName}.`);
+    } catch (clarificationError) {
+      setActionError(clarificationError instanceof Error ? clarificationError.message : 'Unable to send clarification.');
+    } finally {
+      setClarificationSending('');
+    }
+  }
+
+  async function sendBuyerMessage() {
+    const body = buyerMessageText.trim();
+    if (!body) {
+      setActionError('Enter a message before sending.');
+      return;
+    }
+
+    setBuyerMessageSending(true);
+    setActionMessage('');
+    setActionError('');
+
+    try {
+      const response = await apiFetch(`/rfqs/${rfqId}/messages`, {
+        method: 'POST',
+        body: JSON.stringify({ body }),
+      });
+
+      if (!response.ok) {
+        throw new Error(await apiErrorMessage(response, `Unable to send message. Status ${response.status}.`));
+      }
+
+      const message = await response.json() as RfqMessage;
+      setMessages((current) => [...current, message]);
+      setBuyerMessageText('');
+      setActionMessage('Message sent to linked suppliers.');
+    } catch (messageError) {
+      setActionError(messageError instanceof Error ? messageError.message : 'Unable to send this message right now.');
+    } finally {
+      setBuyerMessageSending(false);
+    }
+  }
+
   return (
     <AppShell
       nav={nav}
@@ -349,7 +530,7 @@ export default function QuoteEvaluationPage() {
       requiredOrganizationTypes={['BUYER']}
       requiredRoles={['BUYER_OWNER', 'BUYER_MANAGER', 'BUYER_EVALUATOR']}
     >
-      <div className="mb-6 flex items-start justify-between gap-5">
+      <div className="mb-6 flex flex-col items-start justify-between gap-5 sm:flex-row">
         <div>
           <div className="mb-3 flex items-center gap-3">
             <Link href="/buyer" className="grid h-10 w-10 place-items-center rounded-xl border border-[#DFE9F7] bg-white text-[#0B1744]">
@@ -366,7 +547,7 @@ export default function QuoteEvaluationPage() {
         </div>
 
         {evaluation && (
-          <div className="flex gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row">
             <div className="rounded-2xl border border-[#DFE9F7] bg-white px-5 py-3 text-sm font-bold text-slate-600 shadow-sm">
               <Clock3 className="mr-2 inline text-[#155EEF]" size={16} />
               {formatDate(evaluation.rfq.closingDate)} - {daysLeft(evaluation.rfq.closingDate)}
@@ -379,20 +560,20 @@ export default function QuoteEvaluationPage() {
       </div>
 
       {loading && (
-        <Card className="p-8">
+        <Card className="p-5 sm:p-8">
           <p className="text-sm font-black text-slate-600">Loading Quote Evaluation...</p>
         </Card>
       )}
 
       {!loading && error && (
-        <Card className="p-8">
+        <Card className="p-5 sm:p-8">
           <p className="text-sm font-black text-red-600">{error}</p>
         </Card>
       )}
 
       {!loading && evaluation && (
         <>
-          <div className="grid grid-cols-4 gap-5">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
             <Card className="p-5">
               <p className="text-sm font-black uppercase tracking-[0.08em] text-slate-500">Quotes Evaluated</p>
               <p className="mt-3 text-3xl font-black text-[#0B1744]">{evaluation.summary.quoteCount}</p>
@@ -417,7 +598,7 @@ export default function QuoteEvaluationPage() {
 
           {evaluation.recommendation && (
             <Card className="mt-5 overflow-hidden border-0 bg-gradient-to-r from-[#10215F] to-[#155EEF] p-0 text-white">
-              <div className="grid grid-cols-[1fr_320px] gap-6 p-7">
+              <div className="grid grid-cols-1 gap-6 p-7 lg:grid-cols-[1fr_320px]">
                 <div>
                   <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-xs font-black uppercase tracking-[0.08em]">
                     <Award size={16} />
@@ -442,21 +623,21 @@ export default function QuoteEvaluationPage() {
                 </div>
                 <div className="rounded-2xl bg-white/10 p-5">
                   <p className="text-sm font-black text-blue-50">Overall Score</p>
-                  <p className="mt-2 text-5xl font-black">{evaluation.recommendation.overallScore}%</p>
+                  <p className="mt-2 text-4xl font-black sm:text-5xl">{evaluation.recommendation.overallScore}%</p>
                   <p className="mt-3 text-sm font-bold text-blue-50">Confidence: {evaluation.recommendation.confidence}</p>
                 </div>
               </div>
             </Card>
           )}
 
-          <div className="mt-5 grid grid-cols-4 gap-5">
+          <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
             {evaluation.outcomes.map((outcome) => (
               <OutcomeCard key={outcome.label} outcome={outcome} currency={evaluation.rfq.currency} />
             ))}
           </div>
 
           {evaluation.quotes.length === 0 && (
-            <Card className="mt-5 p-8 text-center">
+            <Card className="mt-5 p-5 text-center sm:p-8">
               <MessageSquare className="mx-auto text-[#155EEF]" size={34} />
               <h2 className="mt-4 text-xl font-black">No submitted quotes yet</h2>
               <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-slate-600">
@@ -467,7 +648,7 @@ export default function QuoteEvaluationPage() {
 
           {evaluation.quotes.length > 0 && (
             <>
-              <div className="mt-5 grid grid-cols-[1.2fr_.8fr] gap-5">
+              <div className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-[1.2fr_.8fr]">
                 <Card className="p-5">
                   <div className="mb-4 flex items-center justify-between">
                     <div>
@@ -477,8 +658,8 @@ export default function QuoteEvaluationPage() {
                     <Pill>{formatDate(evaluation.evaluatedAt)}</Pill>
                   </div>
 
-                  <div className="overflow-hidden rounded-2xl border border-[#DFE9F7]">
-                    <table className="w-full text-left text-sm">
+                  <div className="overflow-x-auto rounded-2xl border border-[#DFE9F7]">
+                    <table className="w-full min-w-[860px] text-left text-sm">
                       <thead className="bg-blue-50/60 text-xs font-black uppercase tracking-[0.08em] text-slate-500">
                         <tr>
                           <th className="px-4 py-3">Rank</th>
@@ -524,6 +705,7 @@ export default function QuoteEvaluationPage() {
                             <td className="px-4 py-4">
                               <div className="flex flex-wrap gap-2">
                                 <button
+                                  type="button"
                                   className="rounded-lg border border-emerald-200 bg-white px-3 py-2 text-xs font-black text-emerald-700 disabled:opacity-50"
                                   disabled={rfqAwarded || quote.quoteStatus === 'SHORTLISTED' || quote.quoteStatus === 'AWARDED' || Boolean(actionQuoteId)}
                                   onClick={() => updateDecision(quote, 'SHORTLISTED')}
@@ -531,6 +713,7 @@ export default function QuoteEvaluationPage() {
                                   {actionQuoteId === `SHORTLISTED:${quote.quoteId}` ? 'Saving' : quote.quoteStatus === 'SHORTLISTED' ? 'Shortlisted' : 'Shortlist'}
                                 </button>
                                 <button
+                                  type="button"
                                   className="rounded-lg border border-red-200 bg-white px-3 py-2 text-xs font-black text-red-600 disabled:opacity-50"
                                   disabled={rfqAwarded || quote.quoteStatus === 'REJECTED' || quote.quoteStatus === 'AWARDED' || Boolean(actionQuoteId)}
                                   onClick={() => updateDecision(quote, 'REJECTED')}
@@ -539,6 +722,7 @@ export default function QuoteEvaluationPage() {
                                 </button>
                                 {canAward && (
                                   <button
+                                    type="button"
                                     className="rounded-lg bg-[#155EEF] px-3 py-2 text-xs font-black text-white disabled:opacity-50"
                                     disabled={rfqAwarded || quote.quoteStatus === 'REJECTED' || Boolean(actionQuoteId)}
                                     onClick={() => awardQuote(quote)}
@@ -573,13 +757,31 @@ export default function QuoteEvaluationPage() {
                 </Card>
               </div>
 
-              <div className="mt-5 grid grid-cols-3 gap-5">
+              <div className="mt-5 grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
                 {topQuotes.map((quote) => (
                   <QuoteRankingCard key={quote.quoteId} quote={quote} />
                 ))}
               </div>
 
-              <div className="mt-5 grid grid-cols-[1fr_1fr] gap-5">
+              <Card className="mt-5 p-5">
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <FileText className="text-[#155EEF]" size={20} />
+                    <div>
+                      <h2 className="text-xl font-black">Quote Document Review</h2>
+                      <p className="mt-1 text-sm text-slate-600">Proposal, pricing, compliance, and certification records submitted with supplier quotes.</p>
+                    </div>
+                  </div>
+                  <Pill>{evaluation.quotes.reduce((total, quote) => total + (quote.supportingDocuments?.length || 0), 0)} documents</Pill>
+                </div>
+                <div className="grid gap-4 lg:grid-cols-2">
+                  {evaluation.quotes.map((quote) => (
+                    <QuoteDocumentReview key={quote.quoteId} quote={quote} />
+                  ))}
+                </div>
+              </Card>
+
+              <div className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-[1fr_1fr]">
                 <Card className="p-5">
                   <div className="mb-4 flex items-center gap-3">
                     <MessageSquare className="text-[#155EEF]" size={20} />
@@ -592,6 +794,14 @@ export default function QuoteEvaluationPage() {
                     <div key={`${item.quoteId}-${item.question}`} className="border-b border-[#DFE9F7] py-3 last:border-0">
                       <p className="text-sm font-black text-[#0B1744]">{item.supplierName}</p>
                       <p className="mt-1 text-sm leading-6 text-slate-600">{item.question}</p>
+                      <button
+                        type="button"
+                        className="mt-3 inline-flex items-center gap-2 rounded-lg border border-blue-200 bg-white px-3 py-2 text-xs font-black text-[#155EEF] disabled:opacity-50"
+                        disabled={!item.supplierProfileId || Boolean(clarificationSending)}
+                        onClick={() => sendClarification(item)}
+                      >
+                        {clarificationSending === `${item.quoteId}:${item.question}` ? 'Sending' : 'Send to supplier'}
+                      </button>
                     </div>
                   ))}
                 </Card>
@@ -623,11 +833,69 @@ export default function QuoteEvaluationPage() {
               </div>
 
               <Card className="mt-5 p-5">
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <MessageSquare className="text-[#155EEF]" size={20} />
+                    <div>
+                      <h2 className="text-xl font-black">Message Activity</h2>
+                      <p className="mt-1 text-sm text-slate-600">Buyer and supplier clarification history for this RFQ.</p>
+                    </div>
+                  </div>
+                  <Pill>{messages.length} messages</Pill>
+                </div>
+                <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
+                  <div className="max-h-[360px] overflow-y-auto rounded-2xl border border-[#DFE9F7] bg-slate-50/60 p-3">
+                    {messages.length === 0 && (
+                      <p className="rounded-xl bg-white p-4 text-sm font-bold text-slate-500">No RFQ messages have been sent yet.</p>
+                    )}
+                    <div className="space-y-3">
+                      {messages.map((message) => {
+                        const mine = message.senderOrganizationId === session?.activeOrganization.id;
+                        return (
+                          <div key={message.id} className={`rounded-2xl border p-4 ${mine ? 'border-blue-100 bg-blue-50/70' : 'border-[#DFE9F7] bg-white'}`}>
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <p className="text-sm font-black text-[#0B1744]">
+                                {message.senderOrganizationName}
+                                <Pill tone={message.senderOrganizationType === 'BUYER' ? 'blue' : 'green'}>{message.senderOrganizationType === 'BUYER' ? 'Buyer' : 'Supplier'}</Pill>
+                              </p>
+                              <p className="text-xs font-bold text-slate-400">{formatMessageTime(message.createdAt)}</p>
+                            </div>
+                            {message.subject && <p className="mt-2 text-xs font-black uppercase tracking-[0.08em] text-slate-500">{message.subject}</p>}
+                            <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-600">{message.body}</p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <div className="rounded-2xl border border-[#DFE9F7] bg-white p-3">
+                    <textarea
+                      className="h-40 w-full resize-none bg-transparent px-2 text-sm outline-none placeholder:text-slate-400"
+                      placeholder="Send a clarification update to linked suppliers for this RFQ."
+                      value={buyerMessageText}
+                      onChange={(event) => setBuyerMessageText(event.target.value)}
+                      maxLength={4000}
+                    />
+                    <div className="mt-3 flex items-center justify-between gap-3">
+                      <p className="text-xs font-bold text-slate-400">{buyerMessageText.length}/4000</p>
+                      <button
+                        type="button"
+                        className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#155EEF] px-5 py-3 text-sm font-black text-white disabled:opacity-50"
+                        disabled={buyerMessageSending || !buyerMessageText.trim()}
+                        onClick={sendBuyerMessage}
+                      >
+                        {buyerMessageSending ? 'Sending' : 'Send Update'} <Send size={15} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+
+              <Card className="mt-5 p-5">
                 <div className="mb-4 flex items-center gap-3">
                   <ShieldCheck className="text-[#155EEF]" size={20} />
                   <h2 className="text-xl font-black">Risk Flags & Negotiation Opportunities</h2>
                 </div>
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
                   {evaluation.quotes.map((quote) => (
                     <div key={quote.quoteId} className="rounded-2xl border border-[#DFE9F7] p-4">
                       <p className="font-black text-[#0B1744]">{quote.supplierName}</p>

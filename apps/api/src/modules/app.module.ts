@@ -10,6 +10,7 @@ import { AuthModule } from './auth/auth.module';
 import { SubscriptionModule } from './subscription/subscription.module';
 import { AdminModule } from './admin/admin.module';
 import { ContactModule } from './contact/contact.module';
+import { DocumentModule } from './document/document.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { ContactModule } from './contact/contact.module';
     AuthModule,
     SubscriptionModule,
     ContactModule,
+    DocumentModule,
     AdminModule,
   ],
   controllers: [HealthController],

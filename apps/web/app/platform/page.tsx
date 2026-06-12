@@ -68,11 +68,11 @@ export default function PlatformPage() {
     <main className="min-h-screen bg-[#F8FBFF] text-[#0B1744]">
       <PublicHeader />
 
-      <section className="px-8 py-16">
+      <section className="px-4 py-10 sm:px-8 sm:py-16">
         <div className="mx-auto grid max-w-[1320px] items-center gap-12 lg:grid-cols-[.92fr_1fr]">
           <div>
             <Pill tone="blue">Platform overview</Pill>
-            <h1 className="mt-6 max-w-2xl text-5xl font-black leading-[1.04] tracking-[-0.05em] lg:text-6xl">
+            <h1 className="mt-6 max-w-2xl text-4xl font-black leading-[1.04] tracking-[-0.045em] sm:text-5xl lg:text-6xl">
               One connected platform for sourcing work that needs control.
             </h1>
             <p className="mt-6 max-w-2xl text-lg font-semibold leading-8 text-slate-600">
@@ -109,7 +109,7 @@ export default function PlatformPage() {
         </div>
       </section>
 
-      <section className="px-8 py-14">
+      <section className="px-4 py-12 sm:px-8 sm:py-14">
         <SectionTitle title="What the platform brings together" subtitle="Each module has its own job, but the value comes from keeping the sourcing record connected from first request to final award." />
         <div className="mx-auto mt-10 grid max-w-[1180px] gap-5 md:grid-cols-2 lg:grid-cols-3">
           {modules.map(({ title, body, icon: Icon }) => (
@@ -124,11 +124,11 @@ export default function PlatformPage() {
         </div>
       </section>
 
-      <section className="bg-[#07133B] px-8 py-16 text-white">
+      <section className="bg-[#07133B] px-4 py-12 text-white sm:px-8 sm:py-16">
         <div className="mx-auto grid max-w-[1180px] gap-10 lg:grid-cols-[.8fr_1fr]">
           <div>
             <Pill tone="gray">Operating model</Pill>
-            <h2 className="mt-5 text-4xl font-black tracking-[-0.04em]">Built around the procurement lifecycle.</h2>
+            <h2 className="mt-5 text-3xl font-black tracking-[-0.04em] sm:text-4xl">Built around the procurement lifecycle.</h2>
             <p className="mt-4 max-w-md text-base font-semibold leading-7 text-blue-100">
               Buyers and suppliers work from different dashboards, while admin teams keep membership, support, roles, revenue, and audit controls in view.
             </p>
@@ -144,7 +144,7 @@ export default function PlatformPage() {
         </div>
       </section>
 
-      <section className="px-8 py-16">
+      <section className="px-4 py-12 sm:px-8 sm:py-16">
         <div className="mx-auto grid max-w-[1180px] gap-6 md:grid-cols-3">
           {[
             ['Buyer workspace', 'RFQ creation, supplier discovery, quote comparison, and award decisions.'],
@@ -160,10 +160,10 @@ export default function PlatformPage() {
         </div>
       </section>
 
-      <section className="px-8 pb-16">
-        <div className="mx-auto flex max-w-[1180px] flex-wrap items-center justify-between gap-6 rounded-[28px] bg-gradient-to-r from-[#17245D] to-[#155EEF] p-8 text-white">
+      <section className="px-4 pb-12 sm:px-8 sm:pb-16">
+        <div className="mx-auto flex max-w-[1180px] flex-wrap items-center justify-between gap-6 rounded-[28px] bg-gradient-to-r from-[#17245D] to-[#155EEF] p-6 text-white sm:p-8">
           <div>
-            <h2 className="text-3xl font-black tracking-[-0.04em]">Ready to see the platform in context?</h2>
+            <h2 className="text-2xl font-black tracking-[-0.04em] sm:text-3xl">Ready to see the platform in context?</h2>
             <p className="mt-2 font-semibold text-blue-100">Register for sample access or contact TheDigiHubs support for review.</p>
           </div>
           <Link href="/register" className="inline-flex items-center gap-2 rounded-full bg-[#FFB000] px-6 py-3 text-sm font-black text-[#0B1744]">

@@ -10,6 +10,7 @@ import { adminNav } from '../admin-nav';
 type OrganizationType = 'BUYER' | 'SUPPLIER' | 'PLATFORM';
 type OrganizationStatus = 'ACTIVE' | 'SUSPENDED' | 'PENDING_VERIFICATION';
 type PlanKey = 'STARTER' | 'GROWTH' | 'PROFESSIONAL' | 'ENTERPRISE';
+type SupplierVerificationStatus = 'UNVERIFIED' | 'PENDING_REVIEW' | 'VERIFIED' | 'SUSPENDED';
 
 type OrganizationItem = {
   id: string;
@@ -24,6 +25,13 @@ type OrganizationItem = {
     key: PlanKey;
     name: string;
     features: string[];
+  };
+  supplierProfile: null | {
+    id: string;
+    verificationStatus: SupplierVerificationStatus;
+    rating: number;
+    completedContracts: number;
+    responseRate: number;
   };
   users: number;
   rfqs: number;
@@ -46,6 +54,7 @@ const organizationTypes: Array<'ALL' | OrganizationType> = ['ALL', 'BUYER', 'SUP
 const organizationStatuses: Array<'ALL' | OrganizationStatus> = ['ALL', 'ACTIVE', 'PENDING_VERIFICATION', 'SUSPENDED'];
 const planOptions: Array<'ALL' | PlanKey> = ['ALL', 'STARTER', 'GROWTH', 'PROFESSIONAL', 'ENTERPRISE'];
 const assignablePlans: PlanKey[] = ['STARTER', 'GROWTH', 'PROFESSIONAL', 'ENTERPRISE'];
+const supplierVerificationStatuses: SupplierVerificationStatus[] = ['UNVERIFIED', 'PENDING_REVIEW', 'VERIFIED', 'SUSPENDED'];
 
 function numberText(value: number) {
   return new Intl.NumberFormat('en-US').format(value);
@@ -70,6 +79,13 @@ function statusTone(status: OrganizationStatus): 'green' | 'orange' | 'red' {
   if (status === 'ACTIVE') return 'green';
   if (status === 'PENDING_VERIFICATION') return 'orange';
   return 'red';
+}
+
+function supplierVerificationTone(status: SupplierVerificationStatus): 'green' | 'orange' | 'red' | 'gray' {
+  if (status === 'VERIFIED') return 'green';
+  if (status === 'PENDING_REVIEW') return 'orange';
+  if (status === 'SUSPENDED') return 'red';
+  return 'gray';
 }
 
 function buildQuery(filters: {
@@ -191,6 +207,29 @@ export function OrganizationsManager() {
     }
   }
 
+  async function updateSupplierVerification(organization: OrganizationItem, verificationStatus: SupplierVerificationStatus) {
+    if (organization.supplierProfile?.verificationStatus === verificationStatus) return;
+    setUpdating(`${organization.id}:supplier`);
+    setMessage('');
+    try {
+      const response = await apiFetch(`/admin/organizations/${organization.id}/supplier-verification`, {
+        method: 'PATCH',
+        body: JSON.stringify({ verificationStatus }),
+      });
+      if (!response.ok) {
+        setMessage('Supplier verification could not be updated.');
+        return;
+      }
+      replaceOrganization((await response.json()) as OrganizationItem);
+      await loadOrganizations();
+      setMessage(`${organization.name} supplier verification updated to ${readable(verificationStatus)}.`);
+    } catch {
+      setMessage('Supplier verification could not be updated.');
+    } finally {
+      setUpdating('');
+    }
+  }
+
   const total = data?.total || 0;
   const active = data?.summary.active || 0;
   const pending = data?.summary.pendingVerification || 0;
@@ -207,7 +246,7 @@ export function OrganizationsManager() {
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-black tracking-[-.03em]">Organizations</h1>
-          <p className="mt-2 text-slate-600">Manage workspace status, membership plans, and access governance.</p>
+          <p className="mt-2 text-slate-600">Manage workspace status, supplier verification, membership plans, and access governance.</p>
         </div>
         <button onClick={loadOrganizations} disabled={loading} className="inline-flex items-center gap-2 rounded-xl bg-[#155EEF] px-6 py-3 text-sm font-black text-white disabled:opacity-50">
           <RefreshCcw size={16} />
@@ -250,14 +289,15 @@ export function OrganizationsManager() {
       <Card className="mt-5 overflow-hidden p-0">
         <div className="border-b border-[#DFE9F7] p-5">
           <h2 className="text-xl font-black">Organization Access Table</h2>
-          <p className="mt-1 text-sm font-bold text-slate-500">Plan and status changes are applied immediately and recorded in audit logs.</p>
+          <p className="mt-1 text-sm font-bold text-slate-500">Plan, status, and supplier verification changes are applied immediately and recorded in audit logs.</p>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1040px] text-left text-sm">
+          <table className="w-full min-w-[1240px] text-left text-sm">
             <thead className="bg-slate-50 text-xs font-black uppercase tracking-[.12em] text-slate-500">
               <tr>
                 <th className="px-5 py-4">Organization</th>
                 <th className="px-5 py-4">Type</th>
+                <th className="px-5 py-4">Supplier Review</th>
                 <th className="px-5 py-4">Plan</th>
                 <th className="px-5 py-4">Status</th>
                 <th className="px-5 py-4">Users</th>
@@ -268,7 +308,7 @@ export function OrganizationsManager() {
             <tbody className="font-bold">
               {loading && !data ? (
                 <tr>
-                  <td colSpan={7} className="px-5 py-10 text-center text-slate-500">Loading organizations...</td>
+                  <td colSpan={8} className="px-5 py-10 text-center text-slate-500">Loading organizations...</td>
                 </tr>
               ) : data?.organizations.length ? data.organizations.map((organization) => (
                 <tr key={organization.id} className="border-t border-[#DFE9F7] align-top">
@@ -279,6 +319,26 @@ export function OrganizationsManager() {
                   </td>
                   <td className="px-5 py-4">
                     <Pill tone={typeTone(organization.type)}>{readable(organization.type)}</Pill>
+                  </td>
+                  <td className="px-5 py-4">
+                    {organization.type === 'SUPPLIER' && organization.supplierProfile ? (
+                      <div className="flex flex-col gap-2">
+                        <Pill tone={supplierVerificationTone(organization.supplierProfile.verificationStatus)}>{readable(organization.supplierProfile.verificationStatus)}</Pill>
+                        <select
+                          value={organization.supplierProfile.verificationStatus}
+                          disabled={updating === `${organization.id}:supplier`}
+                          onChange={(event) => updateSupplierVerification(organization, event.target.value as SupplierVerificationStatus)}
+                          className="h-10 w-44 rounded-xl border border-[#DFE9F7] bg-white px-3 text-xs font-black outline-none focus:border-[#155EEF] disabled:opacity-60"
+                        >
+                          {supplierVerificationStatuses.map((item) => <option key={item} value={item}>{readable(item)}</option>)}
+                        </select>
+                        <p className="text-xs text-slate-500">
+                          {organization.supplierProfile.rating.toFixed(1)} rating | {numberText(organization.supplierProfile.completedContracts)} contracts
+                        </p>
+                      </div>
+                    ) : (
+                      <span className="text-xs font-black text-slate-400">Not applicable</span>
+                    )}
                   </td>
                   <td className="px-5 py-4">
                     <select
@@ -310,7 +370,7 @@ export function OrganizationsManager() {
                 </tr>
               )) : (
                 <tr>
-                  <td colSpan={7} className="px-5 py-10 text-center text-slate-500">No organizations match these filters.</td>
+                  <td colSpan={8} className="px-5 py-10 text-center text-slate-500">No organizations match these filters.</td>
                 </tr>
               )}
             </tbody>

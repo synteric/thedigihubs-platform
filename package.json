@@ -15,8 +15,11 @@
     "dev:worker": "pnpm --filter @thedigihubs/worker dev",
     "db:doctor": "node scripts/ensure-env.mjs && node scripts/db-doctor.mjs",
     "db:generate": "node scripts/ensure-env.mjs && pnpm --filter @thedigihubs/database prisma:generate",
+    "db:migrate:deploy": "node scripts/ensure-env.mjs && pnpm --filter @thedigihubs/database prisma:migrate:deploy",
     "db:push": "node scripts/ensure-env.mjs && pnpm --filter @thedigihubs/database prisma:push",
     "db:seed": "node scripts/ensure-env.mjs && pnpm --filter @thedigihubs/database prisma:seed",
+    "db:backup": "node scripts/ensure-env.mjs && node scripts/db-backup.mjs",
+    "db:restore": "node scripts/ensure-env.mjs && node scripts/db-restore.mjs",
     "docker:build": "node scripts/ensure-env.mjs && docker compose build",
     "docker:up": "node scripts/ensure-env.mjs && docker compose up --build",
     "docker:up:detached": "node scripts/ensure-env.mjs && docker compose up --build -d",
@@ -32,7 +35,10 @@
     "docker:db:setup": "node scripts/ensure-env.mjs && pnpm db:doctor && pnpm db:generate && pnpm db:push && pnpm db:seed",
     "docker:db:reset": "node scripts/ensure-env.mjs && node scripts/reset-docker-db.mjs && pnpm docker:db:setup",
     "lint": "pnpm -r --if-present lint",
-    "typecheck": "pnpm db:generate && pnpm -r --if-present typecheck"
+    "typecheck": "pnpm db:generate && pnpm -r --if-present typecheck",
+    "smoke:web": "node scripts/ensure-env.mjs && node scripts/smoke-web.mjs",
+    "smoke:api": "node scripts/ensure-env.mjs && node scripts/smoke-api.mjs",
+    "smoke:all": "pnpm smoke:web && pnpm smoke:api"
   },
   "packageManager": "pnpm@9.15.0"
 }

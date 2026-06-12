@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import type { ReactNode } from 'react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowLeft,
   BarChart3,
@@ -26,11 +26,13 @@ import {
   UploadCloud,
   UsersRound,
   Clock3,
+  XCircle,
 } from 'lucide-react';
 import { AppShell } from '../../../../components/app-shell';
 import { PlanAccessCard } from '../../../../components/plan-access-card';
 import { Card, Pill } from '../../../../components/ui';
-import { apiFetch } from '../../../../lib/api';
+import { apiErrorMessage, apiFetch, apiUrl } from '../../../../lib/api';
+import { uploadDocument } from '../../../../lib/documents';
 import { useSession } from '../../../../lib/session';
 
 type SupplierQuote = {
@@ -43,7 +45,25 @@ type SupplierQuote = {
   warranty?: string | null;
   technicalResponse?: unknown;
   commercialNotes?: string | null;
+  supportingDocuments?: unknown;
   submittedAt: string;
+};
+
+type RfqMessage = {
+  id: string;
+  rfqId: string;
+  supplierProfileId?: string | null;
+  quoteId?: string | null;
+  senderUserId: string;
+  senderUserName: string;
+  senderOrganizationId: string;
+  senderOrganizationName: string;
+  senderOrganizationType: 'BUYER' | 'SUPPLIER' | 'PLATFORM';
+  subject?: string | null;
+  body: string;
+  visibility: string;
+  createdAt: string;
+  updatedAt: string;
 };
 
 type SupplierRfqDetail = {
@@ -79,6 +99,7 @@ type SupplierRfqDetail = {
     explanation?: unknown;
   } | null;
   quote?: SupplierQuote | null;
+  messages: RfqMessage[];
   canQuote: boolean;
 };
 
@@ -96,6 +117,10 @@ type RfqDocument = {
   type: 'PDF' | 'DOCX' | 'ZIP' | 'FILE';
   name: string;
   size: string;
+  category?: string;
+  storageKey?: string | null;
+  url?: string | null;
+  file?: File;
 };
 
 const nav = [
@@ -155,7 +180,7 @@ function OverviewRow({ icon, title, body }: { icon: ReactNode; title: string; bo
   );
 }
 
-function FileRow({ type, name, size }: RfqDocument) {
+function FileRow({ type, name, size, url }: RfqDocument) {
   const typeColor = type === 'PDF' ? 'bg-red-500' : type === 'DOCX' ? 'bg-[#155EEF]' : type === 'ZIP' ? 'bg-orange-400' : 'bg-slate-500';
 
   return (
@@ -169,10 +194,46 @@ function FileRow({ type, name, size }: RfqDocument) {
       <span className="font-bold text-slate-600">{type}</span>
       <span className="font-bold text-slate-600">{size}</span>
       <span className="font-bold text-slate-600">Provided</span>
-      <div className="flex gap-3 text-[#155EEF]">
-        <Eye size={17} />
-        <Download size={17} />
+      {url ? (
+        <a href={url} target="_blank" rel="noreferrer" className="flex gap-3 text-[#155EEF]" aria-label={`Open ${name}`}>
+          <Eye size={17} />
+          <Download size={17} />
+        </a>
+      ) : (
+        <div className="flex gap-3 text-slate-300">
+          <Eye size={17} />
+          <Download size={17} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function QuoteDocumentRow({ document, onRemove }: { document: RfqDocument; onRemove: () => void }) {
+  const typeColor = document.type === 'PDF' ? 'bg-red-500' : document.type === 'DOCX' ? 'bg-[#155EEF]' : document.type === 'ZIP' ? 'bg-orange-400' : 'bg-slate-500';
+
+  return (
+    <div className="flex flex-col gap-3 rounded-2xl border border-[#DFE9F7] bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex items-center gap-3">
+        <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl text-[10px] font-black text-white ${typeColor}`}>
+          {document.type}
+        </span>
+        <div>
+          <p className="text-sm font-black text-[#0B1744]">{document.name}</p>
+          <p className="mt-1 text-xs font-bold text-slate-500">
+            {document.category || 'Quote Document'} {document.size ? `- ${document.size}` : ''}
+          </p>
+          {document.url && (
+            <a className="mt-1 inline-flex text-xs font-black text-[#155EEF]" href={document.url} target="_blank" rel="noreferrer">
+              Review link
+            </a>
+          )}
+        </div>
       </div>
+      <button className="inline-flex items-center gap-2 rounded-xl border border-red-100 bg-red-50 px-3 py-2 text-xs font-black text-red-600" onClick={onRemove}>
+        <XCircle size={15} />
+        Remove
+      </button>
     </div>
   );
 }
@@ -204,6 +265,10 @@ function PricingRow({
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(value));
+}
+
+function formatMessageTime(value: string) {
+  return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(value));
 }
 
 function daysLeft(value: string) {
@@ -250,19 +315,30 @@ function documentsFrom(value: unknown): RfqDocument[] {
   if (!Array.isArray(value)) return [];
 
   return value
-    .map((document, index) => {
-      if (!document || typeof document !== 'object') return null;
+    .flatMap((document, index): RfqDocument[] => {
+      if (!document || typeof document !== 'object') return [];
       const record = document as Record<string, unknown>;
       const name = typeof record.name === 'string' && record.name.trim() ? record.name : `Document ${index + 1}`;
       const mimeType = typeof record.type === 'string' ? record.type : '';
+      const storageKey = typeof record.storageKey === 'string' && record.storageKey.trim() ? record.storageKey : null;
+      const rawUrl = typeof record.url === 'string' && record.url.trim() ? record.url.trim() : '';
+      const url = rawUrl
+        ? rawUrl.startsWith('http')
+          ? rawUrl
+          : apiUrl(rawUrl)
+        : storageKey
+          ? apiUrl(`/documents/${storageKey}`)
+          : null;
 
-      return {
+      return [{
         type: documentTypeFrom(name, mimeType),
         name,
         size: formatFileSize(record.size),
-      };
-    })
-    .filter((document): document is RfqDocument => Boolean(document));
+        category: typeof record.category === 'string' ? record.category : undefined,
+        storageKey,
+        url,
+      }];
+    });
 }
 
 function quoteSummaryFrom(value: unknown) {
@@ -315,10 +391,17 @@ export default function SupplierRfqDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState<'DRAFT' | 'SUBMITTED' | ''>('');
+  const [messageSending, setMessageSending] = useState(false);
+  const [messageText, setMessageText] = useState('');
   const [success, setSuccess] = useState('');
   const [quoteForm, setQuoteForm] = useState<QuoteForm>(emptyQuoteForm);
+  const [quoteDocuments, setQuoteDocuments] = useState<RfqDocument[]>([]);
+  const [documentCategory, setDocumentCategory] = useState('Technical Proposal');
+  const [documentUrl, setDocumentUrl] = useState('');
+  const quotePreviewRef = useRef<HTMLDivElement>(null);
 
   const documents = useMemo(() => documentsFrom(rfq?.supportingDocuments), [rfq?.supportingDocuments]);
+  const quoteDocumentCount = quoteDocuments.length;
   const quoteReference = rfq ? `Q-${rfq.reference.replace(/^TDH-RFQ-/, '')}` : 'Q-RFQ';
   const quoteStatus = rfq?.quote?.status || null;
   const totalQuoteValue = formatMoney(quoteForm.totalAmount, quoteForm.currency);
@@ -339,13 +422,14 @@ export default function SupplierRfqDetail() {
       try {
         const response = await apiFetch(`/rfqs/supplier/${rfqId}`, { method: 'GET' });
         if (!response.ok) {
-          throw new Error(`Unable to load this RFQ right now. Status ${response.status}.`);
+          throw new Error(await apiErrorMessage(response, `Unable to load this RFQ right now. Status ${response.status}.`));
         }
 
         const data = await response.json() as SupplierRfqDetail;
         if (!cancelled) {
           setRfq(data);
           setQuoteForm(formFromQuote(data));
+          setQuoteDocuments(documentsFrom(data.quote?.supportingDocuments));
         }
       } catch (loadError) {
         if (!cancelled) {
@@ -367,6 +451,58 @@ export default function SupplierRfqDetail() {
 
   function updateQuoteForm(field: keyof QuoteForm, value: string) {
     setQuoteForm((current) => ({ ...current, [field]: value }));
+  }
+
+  function addQuoteFiles(files: FileList | null) {
+    if (!files?.length) return;
+
+    const additions = Array.from(files).slice(0, 10 - quoteDocuments.length).map((file) => ({
+      type: documentTypeFrom(file.name, file.type),
+      name: file.name,
+      size: formatFileSize(file.size),
+      category: documentCategory,
+      url: documentUrl.trim() || null,
+      file,
+    }));
+
+    setQuoteDocuments((current) => [...current, ...additions].slice(0, 10));
+    setDocumentUrl('');
+  }
+
+  function addDocumentLink() {
+    const url = documentUrl.trim();
+    if (!url) {
+      setError('Enter a document link before adding it.');
+      return;
+    }
+
+    let name = 'Linked quote document';
+    try {
+      const parsed = new URL(url);
+      name = decodeURIComponent(parsed.pathname.split('/').filter(Boolean).pop() || parsed.hostname);
+    } catch {
+      name = url;
+    }
+
+    setError('');
+    setQuoteDocuments((current) => [...current, {
+      type: documentTypeFrom(name, ''),
+      name,
+      size: 'Link',
+      category: documentCategory,
+      url,
+    }].slice(0, 10));
+    setDocumentUrl('');
+  }
+
+  function removeQuoteDocument(index: number) {
+    setQuoteDocuments((current) => current.filter((_, currentIndex) => currentIndex !== index));
+  }
+
+  function previewQuote() {
+    setError('');
+    setSuccess('Review the pricing summary and compliance checklist before submitting.');
+    quotePreviewRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   async function saveQuote(status: 'DRAFT' | 'SUBMITTED') {
@@ -396,6 +532,22 @@ export default function SupplierRfqDetail() {
     setSaving(status);
 
     try {
+      const uploadedQuoteDocuments = await Promise.all(quoteDocuments.map(async (document) => {
+        if (!document.file || document.storageKey) return document;
+        const uploaded = await uploadDocument(document.file, document.category || 'Quote Document');
+        return {
+          ...document,
+          type: documentTypeFrom(uploaded.name, uploaded.type),
+          name: uploaded.name,
+          size: formatFileSize(uploaded.size),
+          storageKey: uploaded.storageKey,
+          url: uploaded.url,
+          file: undefined,
+        };
+      }));
+      setQuoteDocuments(uploadedQuoteDocuments);
+      const supportingDocuments = uploadedQuoteDocuments.map(({ file, ...document }) => document);
+
       const response = await apiFetch(`/rfqs/${rfq.id}/quotes`, {
         method: 'POST',
         body: JSON.stringify({
@@ -406,21 +558,56 @@ export default function SupplierRfqDetail() {
           warranty: quoteForm.warranty,
           commercialNotes: quoteForm.commercialNotes,
           technicalResponse: { summary: quoteForm.proposalSummary },
+          supportingDocuments,
           status,
         }),
       });
 
       if (!response.ok) {
-        throw new Error(`Unable to ${status === 'DRAFT' ? 'save draft' : 'submit quote'}. Status ${response.status}.`);
+        throw new Error(await apiErrorMessage(response, `Unable to ${status === 'DRAFT' ? 'save draft' : 'submit quote'}. Status ${response.status}.`));
       }
 
       const quote = await response.json() as SupplierQuote;
       setRfq((current) => current ? { ...current, quote } : current);
+      setQuoteDocuments(documentsFrom(quote.supportingDocuments));
       setSuccess(status === 'DRAFT' ? 'Draft saved.' : 'Quote submitted.');
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : 'Unable to save this quote right now.');
     } finally {
       setSaving('');
+    }
+  }
+
+  async function sendMessage() {
+    if (!rfq) return;
+    const body = messageText.trim();
+    if (!body) {
+      setError('Enter a message before sending.');
+      return;
+    }
+
+    setError('');
+    setSuccess('');
+    setMessageSending(true);
+
+    try {
+      const response = await apiFetch(`/rfqs/${rfq.id}/messages`, {
+        method: 'POST',
+        body: JSON.stringify({ body }),
+      });
+
+      if (!response.ok) {
+        throw new Error(await apiErrorMessage(response, `Unable to send message. Status ${response.status}.`));
+      }
+
+      const message = await response.json() as RfqMessage;
+      setRfq((current) => current ? { ...current, messages: [...(current.messages || []), message] } : current);
+      setMessageText('');
+      setSuccess('Message sent to the buyer.');
+    } catch (sendError) {
+      setError(sendError instanceof Error ? sendError.message : 'Unable to send this message right now.');
+    } finally {
+      setMessageSending(false);
     }
   }
 
@@ -434,7 +621,7 @@ export default function SupplierRfqDetail() {
         requiredRoles={['SUPPLIER_OWNER', 'SUPPLIER_MANAGER', 'SUPPLIER_STAFF']}
       >
         <PlanAccessCard className="mb-5" activeHref="/supplier" />
-        <Card className="p-8">
+        <Card className="p-5 sm:p-8">
           <div className="max-w-3xl">
             <p className="text-sm font-black uppercase tracking-[.16em] text-[#155EEF]">Plan access required</p>
             <h1 className="mt-3 text-3xl font-black tracking-[-.03em]">Quote preparation is available after plan approval.</h1>
@@ -463,7 +650,7 @@ export default function SupplierRfqDetail() {
       requiredOrganizationTypes={['SUPPLIER']}
       requiredRoles={['SUPPLIER_OWNER', 'SUPPLIER_MANAGER', 'SUPPLIER_STAFF']}
     >
-      <div className="mb-5 flex items-start justify-between gap-5">
+      <div className="mb-5 flex flex-col items-start justify-between gap-5 sm:flex-row">
         <div>
           <h1 className="text-3xl font-black tracking-[-0.03em] text-[#0B1744]">RFQ Detail & Prepare Quote</h1>
           <p className="mt-2 text-slate-600">Review the buyer&apos;s request for quotation and submit your best offer.</p>
@@ -479,13 +666,13 @@ export default function SupplierRfqDetail() {
       </div>
 
       {loading && (
-        <Card className="p-8">
+        <Card className="p-5 sm:p-8">
           <p className="text-sm font-black text-slate-600">Loading RFQ details...</p>
         </Card>
       )}
 
       {!loading && error && !rfq && (
-        <Card className="p-8">
+        <Card className="p-5 sm:p-8">
           <p className="text-sm font-black text-red-600">{error}</p>
           <Link href="/supplier" className="mt-5 inline-flex rounded-xl bg-[#155EEF] px-5 py-3 text-sm font-black text-white">
             Back to Opportunities
@@ -555,7 +742,7 @@ export default function SupplierRfqDetail() {
                   </div>
                   <div className="flex items-center gap-3">
                     <Pill>{documents.length} files</Pill>
-                    <span className="text-sm font-black text-[#155EEF]">View all</span>
+                    <span className="text-sm font-black text-slate-500">All visible</span>
                   </div>
                 </div>
                 <div className="overflow-x-auto rounded-2xl border border-[#DFE9F7] px-4">
@@ -581,22 +768,56 @@ export default function SupplierRfqDetail() {
                   <h2 className="text-xl font-black">3. Clarifications & Messages</h2>
                 </div>
                 <div className="space-y-3">
-                  <div className="rounded-2xl border border-[#DFE9F7] bg-blue-50/40 p-4">
-                    <div className="flex gap-3">
-                      <div className="grid h-9 w-9 place-items-center rounded-full bg-emerald-100 text-xs font-black text-emerald-700">RFQ</div>
-                      <div>
-                        <p className="text-sm font-black">{rfq.buyerOrganization.name} <Pill tone="green">Buyer</Pill></p>
-                        <p className="mt-1 text-sm text-slate-600">Clarifications for this RFQ will appear here once buyer messaging is connected.</p>
-                        <p className="mt-1 text-xs font-bold text-slate-400">{formatDate(rfq.closingDate)} deadline</p>
+                  {(rfq.messages || []).length === 0 && (
+                    <div className="rounded-2xl border border-[#DFE9F7] bg-blue-50/40 p-4">
+                      <div className="flex gap-3">
+                        <div className="grid h-9 w-9 place-items-center rounded-full bg-emerald-100 text-xs font-black text-emerald-700">RFQ</div>
+                        <div>
+                          <p className="text-sm font-black">{rfq.buyerOrganization.name} <Pill tone="green">Buyer</Pill></p>
+                          <p className="mt-1 text-sm text-slate-600">Use this thread to ask RFQ clarification questions before submitting your quote.</p>
+                          <p className="mt-1 text-xs font-bold text-slate-400">{formatDate(rfq.closingDate)} deadline</p>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-3 rounded-2xl border border-[#DFE9F7] bg-white p-3">
-                    <input className="w-full bg-transparent px-2 text-sm outline-none placeholder:text-slate-400 disabled:text-slate-400" placeholder="Buyer messaging will be available after launch." disabled />
-                    <Paperclip className="text-slate-300" size={19} />
-                    <button className="inline-flex items-center gap-2 rounded-xl bg-slate-200 px-5 py-3 text-sm font-black text-slate-500" disabled>
-                      Messaging Soon <Send size={15} />
-                    </button>
+                  )}
+                  {(rfq.messages || []).map((message) => {
+                    const mine = message.senderOrganizationId === session?.activeOrganization.id;
+                    return (
+                      <div key={message.id} className={`rounded-2xl border p-4 ${mine ? 'border-blue-100 bg-blue-50/70' : 'border-[#DFE9F7] bg-white'}`}>
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <p className="text-sm font-black text-[#0B1744]">
+                            {message.senderOrganizationName}
+                            <Pill tone={message.senderOrganizationType === 'BUYER' ? 'green' : 'blue'}>{message.senderOrganizationType === 'BUYER' ? 'Buyer' : 'Supplier'}</Pill>
+                          </p>
+                          <p className="text-xs font-bold text-slate-400">{formatMessageTime(message.createdAt)}</p>
+                        </div>
+                        <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-600">{message.body}</p>
+                      </div>
+                    );
+                  })}
+                  <div className="rounded-2xl border border-[#DFE9F7] bg-white p-3">
+                    <textarea
+                      className="h-24 w-full resize-none bg-transparent px-2 text-sm outline-none placeholder:text-slate-400"
+                      placeholder="Ask the buyer a clarification question about scope, documents, delivery, or quote requirements."
+                      value={messageText}
+                      onChange={(event) => setMessageText(event.target.value)}
+                      maxLength={4000}
+                    />
+                    <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex items-center gap-2 text-xs font-bold text-slate-400">
+                        <Paperclip className="text-slate-300" size={17} />
+                        Attachments will follow the document workflow.
+                      </div>
+                      <button
+                        type="button"
+                        className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#155EEF] px-5 py-3 text-sm font-black text-white disabled:opacity-50"
+                        disabled={messageSending || !messageText.trim()}
+                        onClick={sendMessage}
+                      >
+                        {messageSending ? 'Sending' : 'Send Message'} <Send size={15} />
+                      </button>
+                    </div>
+                    <p className="mt-2 text-right text-xs font-bold text-slate-400">{messageText.length}/4000 characters</p>
                   </div>
                 </div>
               </Card>
@@ -689,16 +910,76 @@ export default function SupplierRfqDetail() {
                     placeholder="Payment terms, exclusions, assumptions, or optional notes."
                   />
                 </label>
-                <div className="mt-4 rounded-2xl border-2 border-dashed border-blue-200 bg-blue-50/30 p-6 text-center">
-                  <UploadCloud className="mx-auto text-[#155EEF]" size={30} />
-                  <p className="mt-2 text-sm font-black">Quote Attachments (Optional)</p>
-                  <p className="text-xs text-slate-500">Attach proposal documents once supplier file uploads are connected.</p>
+                <div className="mt-4 rounded-2xl border-2 border-dashed border-blue-200 bg-blue-50/30 p-4">
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-end">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3">
+                        <UploadCloud className="text-[#155EEF]" size={26} />
+                        <div>
+                          <p className="text-sm font-black">Quote Attachments (Optional)</p>
+                          <p className="text-xs text-slate-500">Add proposal, pricing, compliance, and certification documents for buyer review.</p>
+                        </div>
+                      </div>
+                      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-[190px_1fr]">
+                        <select
+                          className="rounded-xl border border-[#DFE9F7] bg-white px-4 py-3 text-sm font-bold outline-none"
+                          value={documentCategory}
+                          onChange={(event) => setDocumentCategory(event.target.value)}
+                        >
+                          {['Technical Proposal', 'Pricing Sheet', 'Compliance Document', 'Certification', 'Commercial Terms', 'Other'].map((category) => (
+                            <option key={category} value={category}>{category}</option>
+                          ))}
+                        </select>
+                        <input
+                          className="rounded-xl border border-[#DFE9F7] bg-white px-4 py-3 text-sm font-bold outline-none"
+                          value={documentUrl}
+                          onChange={(event) => setDocumentUrl(event.target.value)}
+                          placeholder="Optional document review link"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-2 sm:flex-row lg:flex-col">
+                      <label className="inline-flex cursor-pointer items-center justify-center rounded-xl bg-[#155EEF] px-5 py-3 text-sm font-black text-white">
+                        Choose Files
+                        <input
+                          className="hidden"
+                          type="file"
+                          multiple
+                          onChange={(event) => {
+                            addQuoteFiles(event.target.files);
+                            event.currentTarget.value = '';
+                          }}
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        className="rounded-xl border border-[#DFE9F7] bg-white px-5 py-3 text-sm font-black text-[#155EEF]"
+                        onClick={addDocumentLink}
+                      >
+                        Add Link
+                      </button>
+                    </div>
+                  </div>
+                  <div className="mt-4 space-y-3">
+                    {quoteDocuments.length === 0 && (
+                      <p className="rounded-xl bg-white px-4 py-3 text-sm font-bold text-slate-500">No quote documents added yet.</p>
+                    )}
+                    {quoteDocuments.map((document, index) => (
+                      <QuoteDocumentRow
+                        key={`${document.name}-${index}`}
+                        document={document}
+                        onRemove={() => removeQuoteDocument(index)}
+                      />
+                    ))}
+                  </div>
                 </div>
               </Card>
 
-              <Card className="p-5">
-                <h2 className="mb-3 text-xl font-black">5. Pricing Summary</h2>
-                <table className="w-full text-left text-sm">
+              <div ref={quotePreviewRef}>
+                <Card className="p-5">
+                  <h2 className="mb-3 text-xl font-black">5. Pricing Summary</h2>
+                  <div className="overflow-x-auto">
+                  <table className="w-full min-w-[560px] text-left text-sm">
                   <thead className="border-b border-[#DFE9F7] text-xs font-black uppercase tracking-[0.08em] text-slate-500">
                     <tr>
                       <th>#</th>
@@ -727,21 +1008,23 @@ export default function SupplierRfqDetail() {
                     ))}
                   </tbody>
                 </table>
-                <div className="mt-4 space-y-1 text-right text-sm font-bold text-slate-600">
-                  <p>Delivery <span className="ml-10 text-[#0B1744]">{quoteForm.deliveryDays || '-'} days</span></p>
-                  <p>Validity <span className="ml-10 text-[#0B1744]">{quoteForm.validityDays || '-'} days</span></p>
-                  <p className="rounded-xl bg-blue-50 px-4 py-3 text-lg font-black text-[#155EEF]">
-                    Total Quote Value ({quoteForm.currency}) <span className="ml-8">{totalQuoteValue}</span>
-                  </p>
-                </div>
-              </Card>
+                  </div>
+                  <div className="mt-4 space-y-1 text-right text-sm font-bold text-slate-600">
+                    <p>Delivery <span className="ml-10 text-[#0B1744]">{quoteForm.deliveryDays || '-'} days</span></p>
+                    <p>Validity <span className="ml-10 text-[#0B1744]">{quoteForm.validityDays || '-'} days</span></p>
+                    <p className="rounded-xl bg-blue-50 px-4 py-3 text-lg font-black text-[#155EEF]">
+                      Total Quote Value ({quoteForm.currency}) <span className="ml-8">{totalQuoteValue}</span>
+                    </p>
+                  </div>
+                </Card>
+              </div>
 
               <Card className="p-5">
                 <h2 className="mb-3 text-xl font-black">6. Compliance Checklist</h2>
                 {[
                   'I have read and understood all RFQ requirements.',
                   'Technical requirements and scope have been reviewed.',
-                  'All required documents and information are attached.',
+                  quoteDocumentCount > 0 ? `${quoteDocumentCount} quote document${quoteDocumentCount === 1 ? '' : 's'} added for buyer review.` : 'Quote documents are optional but recommended for buyer review.',
                 ].map((item) => (
                   <p key={item} className="mb-2 flex items-center gap-3 text-sm font-bold text-slate-600">
                     <CheckCircle2 className="text-[#155EEF]" size={18} />
@@ -764,6 +1047,7 @@ export default function SupplierRfqDetail() {
             </Link>
             <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
               <button
+                type="button"
                 className="inline-flex items-center gap-2 rounded-xl border border-[#DFE9F7] bg-white px-7 py-3 text-sm font-black disabled:opacity-60"
                 disabled={!rfq.canQuote || Boolean(saving)}
                 onClick={() => saveQuote('DRAFT')}
@@ -772,12 +1056,14 @@ export default function SupplierRfqDetail() {
                 {saving === 'DRAFT' ? 'Saving Draft' : 'Save Draft'}
               </button>
               <button
+                type="button"
                 className="rounded-xl border border-[#DFE9F7] bg-white px-7 py-3 text-sm font-black"
-                onClick={() => setSuccess('Review the quote summary before submitting.')}
+                onClick={previewQuote}
               >
                 Preview Quote
               </button>
               <button
+                type="button"
                 className="rounded-xl bg-[#155EEF] px-8 py-3 text-sm font-black text-white shadow-[0_12px_30px_rgba(21,94,239,.18)] disabled:opacity-60"
                 disabled={!rfq.canQuote || Boolean(saving)}
                 onClick={() => saveQuote('SUBMITTED')}

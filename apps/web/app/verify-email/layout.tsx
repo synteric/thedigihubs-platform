@@ -1,0 +1,14 @@
+import type { Metadata } from 'next';
+import type { ReactNode } from 'react';
+
+export const metadata: Metadata = {
+  title: 'Verify Your Email',
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
+
+export default function VerifyEmailLayout({ children }: { children: ReactNode }) {
+  return children;
+}

@@ -12,6 +12,17 @@ type SupportNotification = {
   replyTo?: string;
 };
 
+type EmailNotification = SupportNotification & {
+  to: string | string[];
+};
+
+type DeliveryResult = {
+  sent: boolean;
+  to: string | string[];
+  provider?: 'resend' | 'smtp';
+  id?: string;
+};
+
 @Injectable()
 export class NotificationService {
   private readonly logger = new Logger(NotificationService.name);
@@ -27,32 +38,99 @@ export class NotificationService {
   }
 
   async sendToSupport(input: SupportNotification) {
-    const to = this.supportEmail();
-    const transporter = this.getTransporter();
-    if (!transporter) {
-      this.logger.warn(`Mail is not configured. Support notification queued only in app data for ${to}.`);
-      return { sent: false, to };
+    return this.sendEmail({
+      ...input,
+      to: this.supportEmail(),
+    });
+  }
+
+  async sendEmail(input: EmailNotification): Promise<DeliveryResult> {
+    if (this.deliveryDisabled()) {
+      this.logger.warn(`Mail delivery is disabled. Notification was not sent to ${this.formatRecipients(input.to)}.`);
+      return { sent: false, to: input.to };
     }
 
+    const provider = this.config.get<string>('EMAIL_PROVIDER')?.trim().toLowerCase();
+    const resendApiKey = this.config.get<string>('RESEND_API_KEY')?.trim();
+
+    if (provider === 'resend') {
+      if (!resendApiKey) {
+        this.logger.error('EMAIL_PROVIDER is set to resend but RESEND_API_KEY is missing.');
+        return { sent: false, to: input.to, provider: 'resend' };
+      }
+      return this.sendViaResend(input, resendApiKey);
+    }
+
+    if (resendApiKey && provider !== 'smtp') {
+      return this.sendViaResend(input, resendApiKey);
+    }
+
+    const transporter = this.getTransporter();
+    if (!transporter) {
+      this.logger.warn(`Mail is not configured. Notification was recorded in app data but not sent to ${this.formatRecipients(input.to)}.`);
+      return { sent: false, to: input.to };
+    }
+
+    return this.sendViaSmtp(input, transporter);
+  }
+
+  private async sendViaSmtp(input: EmailNotification, transporter: Transporter): Promise<DeliveryResult> {
     try {
       await transporter.sendMail({
         from: this.mailFrom(),
-        to,
+        to: input.to,
         replyTo: input.replyTo,
         subject: input.subject,
         text: input.text,
-        html: input.html,
+        html: input.html || this.textToHtml(input.text),
       });
-      return { sent: true, to };
+      return { sent: true, to: input.to, provider: 'smtp' };
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown mail error';
-      this.logger.error(`Support notification could not be sent to ${to}: ${message}`);
-      return { sent: false, to };
+      this.logger.error(`Notification could not be sent to ${this.formatRecipients(input.to)}: ${message}`);
+      return { sent: false, to: input.to, provider: 'smtp' };
+    }
+  }
+
+  private async sendViaResend(input: EmailNotification, apiKey: string): Promise<DeliveryResult> {
+    try {
+      const response = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: this.mailFrom(),
+          to: Array.isArray(input.to) ? input.to : [input.to],
+          reply_to: input.replyTo,
+          subject: input.subject,
+          text: input.text,
+          html: input.html || this.textToHtml(input.text),
+        }),
+      });
+
+      const payload = await response.json().catch(() => undefined) as { id?: string; message?: string; name?: string } | undefined;
+      if (!response.ok) {
+        this.logger.error(`Resend notification failed for ${this.formatRecipients(input.to)}: ${response.status} ${payload?.message || payload?.name || response.statusText}`);
+        return { sent: false, to: input.to, provider: 'resend' };
+      }
+
+      return { sent: true, to: input.to, provider: 'resend', id: payload?.id };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown Resend error';
+      this.logger.error(`Resend notification could not be sent to ${this.formatRecipients(input.to)}: ${message}`);
+      return { sent: false, to: input.to, provider: 'resend' };
     }
   }
 
   private mailFrom() {
     return this.config.get<string>('MAIL_FROM')?.trim() || `TheDigiHubs <${DEFAULT_SUPPORT_EMAIL}>`;
+  }
+
+  private deliveryDisabled() {
+    const value = this.config.get<string>('NOTIFICATION_DELIVERY_ENABLED')?.trim().toLowerCase();
+    return value === 'false' || value === '0' || value === 'off';
   }
 
   private getTransporter() {
@@ -77,5 +155,22 @@ export class NotificationService {
     });
 
     return this.transporter;
+  }
+
+  private formatRecipients(to: string | string[]) {
+    return Array.isArray(to) ? to.join(', ') : to;
+  }
+
+  private textToHtml(text: string) {
+    return `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.6;color:#0b1744;">${this.escapeHtml(text).replace(/\n/g, '<br>')}</div>`;
+  }
+
+  private escapeHtml(value: string) {
+    return value
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
   }
 }

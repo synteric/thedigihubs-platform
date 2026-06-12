@@ -13,7 +13,7 @@ export type NavItem = { label: string; icon: React.ReactNode; active?: boolean; 
 export function AccountDropdown({ name, role, onLogout }: { name: string; role: string; onLogout: () => void }) {
   const initials = name.split(' ').map((v) => v[0]).join('').slice(0, 2);
   return (
-    <div className="absolute right-0 top-14 z-30 w-72 rounded-[20px] border border-[#DFE9F7] bg-white p-4 shadow-[0_18px_50px_rgba(16,33,63,.14)]">
+    <div className="absolute right-0 top-14 z-30 max-h-[calc(100vh-6rem)] w-[calc(100vw-2rem)] max-w-72 overflow-y-auto rounded-[20px] border border-[#DFE9F7] bg-white p-4 shadow-[0_18px_50px_rgba(16,33,63,.14)] sm:w-72">
       <div className="mb-3 flex items-center gap-3">
         <div className="grid h-12 w-12 place-items-center rounded-full bg-[#155EEF] text-sm font-black text-white">{initials}</div>
         <div>
@@ -69,6 +69,7 @@ export function AppShell({
 }) {
   const { session, loading, logout, hasOrganizationType, hasRole } = useSession();
   const [collapsed, setCollapsed] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
   const sessionName = session?.user.name || name;
@@ -88,6 +89,10 @@ export function AppShell({
       router.replace('/access-denied');
     }
   }, [loading, organizationAllowed, pathname, roleAllowed, router, session]);
+
+  useEffect(() => {
+    setAccountOpen(false);
+  }, [pathname]);
 
   return (
     <div className="min-h-screen bg-[#F8FBFF] text-[#0B1744]">
@@ -110,14 +115,22 @@ export function AppShell({
         </div>
         <div className="ml-auto flex items-center gap-3 pl-3 lg:gap-5 lg:pl-8">
           <div className="hidden items-center gap-5 lg:flex"><Bell size={22}/><Mail size={22}/><HelpCircle size={22}/></div>
-          <div className="relative flex items-center gap-3 border-l border-[#DFE9F7] pl-3 lg:pl-5">
-            <div className="grid h-10 w-10 place-items-center rounded-full bg-[#155EEF] text-sm font-black text-white">{initials}</div>
-            <div className="hidden sm:block">
-              <p className="text-sm font-black">{sessionName}</p>
-              <p className="text-xs font-semibold text-slate-500">{roleLabel}</p>
-            </div>
-            <ChevronDown size={16}/>
-            {showDropdown && <AccountDropdown name={sessionName} role={roleLabel} onLogout={logout}/>}          
+          <div className="relative border-l border-[#DFE9F7] pl-3 lg:pl-5">
+            <button
+              aria-expanded={accountOpen}
+              aria-haspopup="menu"
+              className="flex items-center gap-2 rounded-2xl px-1 py-1 text-left transition hover:bg-blue-50 sm:gap-3 sm:px-2"
+              type="button"
+              onClick={() => setAccountOpen((current) => !current)}
+            >
+              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#155EEF] text-sm font-black text-white">{initials}</div>
+              <div className="hidden sm:block">
+                <p className="max-w-[150px] truncate text-sm font-black">{sessionName}</p>
+                <p className="max-w-[150px] truncate text-xs font-semibold text-slate-500">{roleLabel}</p>
+              </div>
+              <ChevronDown className={`transition ${accountOpen ? 'rotate-180' : ''}`} size={16}/>
+            </button>
+            {showDropdown && accountOpen && <AccountDropdown name={sessionName} role={roleLabel} onLogout={logout}/>}          
           </div>
         </div>
       </header>

@@ -94,6 +94,10 @@ const emptyForm: RegistrationForm = {
   confirmPassword: '',
 };
 
+function strongPassword(value: string) {
+  return value.length >= 10 && /[a-z]/.test(value) && /[A-Z]/.test(value) && /[0-9]/.test(value) && /[^A-Za-z0-9]/.test(value);
+}
+
 export default function RegisterPage() {
   const router = useRouter();
   const { refresh } = useSession();
@@ -113,8 +117,8 @@ export default function RegisterPage() {
     event.preventDefault();
     setError('');
 
-    if (form.password.length < 8) {
-      setError('Password must be at least 8 characters.');
+    if (!strongPassword(form.password)) {
+      setError('Password must include at least 10 characters, uppercase, lowercase, number, and symbol.');
       return;
     }
 
@@ -163,7 +167,7 @@ export default function RegisterPage() {
     <main className="min-h-screen bg-[#F5F8FC] text-[#0B1744]">
       <PublicHeader />
 
-      <section className="mx-auto max-w-[1260px] px-6 py-7 lg:px-8">
+      <section className="mx-auto max-w-[1260px] px-4 py-7 sm:px-6 lg:px-8">
         <div className="mb-5 text-xs font-bold text-slate-500">
           Home <span className="mx-2 text-slate-300">/</span> Free sample access
         </div>
@@ -197,7 +201,7 @@ export default function RegisterPage() {
                 </label>
                 <label className="block">
                   <span className="text-sm font-black">Mobile number</span>
-                  <div className="mt-2 grid grid-cols-[92px_1fr] gap-2">
+                  <div className="mt-2 grid grid-cols-[78px_1fr] gap-2 sm:grid-cols-[92px_1fr]">
                     <input value={form.phoneCode} onChange={(event) => updateField('phoneCode', event.target.value)} placeholder="+1" className="h-11 w-full rounded-lg border border-[#DCE6F3] bg-[#FAFCFF] px-3 text-sm font-bold outline-none transition placeholder:text-slate-400 focus:border-[#155EEF] focus:ring-4 focus:ring-blue-100" />
                     <input value={form.phone} onChange={(event) => updateField('phone', event.target.value)} placeholder="Mobile number" className="h-11 w-full rounded-lg border border-[#DCE6F3] bg-[#FAFCFF] px-4 text-sm font-bold outline-none transition placeholder:text-slate-400 focus:border-[#155EEF] focus:ring-4 focus:ring-blue-100" />
                   </div>
@@ -216,11 +220,11 @@ export default function RegisterPage() {
                 </label>
                 <label className="block">
                   <span className="text-sm font-black">Password *</span>
-                  <input required minLength={8} type="password" value={form.password} onChange={(event) => updateField('password', event.target.value)} autoComplete="new-password" className="mt-2 h-11 w-full rounded-lg border border-[#DCE6F3] bg-[#FAFCFF] px-4 text-sm font-bold outline-none transition focus:border-[#155EEF] focus:ring-4 focus:ring-blue-100" />
+                  <input required minLength={10} type="password" value={form.password} onChange={(event) => updateField('password', event.target.value)} autoComplete="new-password" className="mt-2 h-11 w-full rounded-lg border border-[#DCE6F3] bg-[#FAFCFF] px-4 text-sm font-bold outline-none transition focus:border-[#155EEF] focus:ring-4 focus:ring-blue-100" />
                 </label>
                 <label className="block">
                   <span className="text-sm font-black">Confirm password *</span>
-                  <input required minLength={8} type="password" value={form.confirmPassword} onChange={(event) => updateField('confirmPassword', event.target.value)} autoComplete="new-password" className="mt-2 h-11 w-full rounded-lg border border-[#DCE6F3] bg-[#FAFCFF] px-4 text-sm font-bold outline-none transition focus:border-[#155EEF] focus:ring-4 focus:ring-blue-100" />
+                  <input required minLength={10} type="password" value={form.confirmPassword} onChange={(event) => updateField('confirmPassword', event.target.value)} autoComplete="new-password" className="mt-2 h-11 w-full rounded-lg border border-[#DCE6F3] bg-[#FAFCFF] px-4 text-sm font-bold outline-none transition focus:border-[#155EEF] focus:ring-4 focus:ring-blue-100" />
                 </label>
               </div>
 

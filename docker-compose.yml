@@ -59,9 +59,12 @@ services:
       dockerfile: apps/api/Dockerfile
     container_name: thedigihubs-api
     env_file: .env
+    environment:
+      DOCUMENT_STORAGE_DIR: /workspace/storage/documents
     volumes:
       - ./apps/api/src:/workspace/apps/api/src
       - ./packages/database/prisma:/workspace/packages/database/prisma
+      - document-storage:/workspace/storage/documents
     ports:
       - "4000:4000"
     depends_on:
@@ -110,3 +113,4 @@ volumes:
   meili-data:
   minio-data:
   web-next-cache:
+  document-storage:

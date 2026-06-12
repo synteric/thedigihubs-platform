@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Building2,
@@ -88,6 +89,17 @@ function statusTone(status: OrganizationStatus): 'green' | 'orange' | 'red' | 'g
   if (status === 'PENDING_VERIFICATION') return 'orange';
   if (status === 'SUSPENDED') return 'red';
   return 'gray';
+}
+
+function operationsHref(label: string) {
+  const normalized = label.toLowerCase();
+  if (normalized.includes('organization')) return '/admin/organizations';
+  if (normalized.includes('user')) return '/admin/users';
+  if (normalized.includes('rfq')) return '/admin/rfqs';
+  if (normalized.includes('support')) return '/admin/support';
+  if (normalized.includes('audit')) return '/admin/audit';
+  if (normalized.includes('revenue') || normalized.includes('subscription') || normalized.includes('plan')) return '/admin/revenue';
+  return '/admin';
 }
 
 function Health({ overview }: { overview: AdminOverview | null }) {
@@ -210,7 +222,7 @@ export function AdminDashboard() {
             <Card className="p-5">
               <div className="mb-4 flex justify-between">
                 <h2 className="text-xl font-black">Recent Organizations</h2>
-                <p className="text-sm font-black text-[#155EEF]">View all organizations</p>
+                <Link href="/admin/organizations" className="text-sm font-black text-[#155EEF]">View all organizations</Link>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[720px] text-left text-sm">
@@ -235,7 +247,9 @@ export function AdminDashboard() {
                         <td>{readable(organization.plan)}</td>
                         <td>{numberText(organization.users)}</td>
                         <td><Pill tone={statusTone(organization.status)}>{readable(organization.status)}</Pill></td>
-                        <td className="text-[#155EEF]">Review</td>
+                        <td>
+                          <Link href="/admin/organizations" className="text-[#155EEF]">Review</Link>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -316,11 +330,11 @@ export function AdminDashboard() {
               <h2 className="text-xl font-black">Platform Operations Snapshot</h2>
               <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
                 {overview.operationsSnapshot.map((row) => (
-                  <div key={row.label} className="rounded-2xl border border-[#DFE9F7] p-4 text-center">
+                  <Link key={row.label} href={operationsHref(row.label)} className="rounded-2xl border border-[#DFE9F7] p-4 text-center transition hover:border-blue-200 hover:bg-blue-50">
                     <p className="text-xs font-black text-slate-500">{row.label}</p>
                     <p className="mt-2 text-2xl font-black">{numberText(row.value)}</p>
                     <p className="mt-2 text-xs font-black text-[#155EEF]">View</p>
-                  </div>
+                  </Link>
                 ))}
               </div>
             </Card>

@@ -86,7 +86,7 @@ function SidebarCard({ type }: { type: 'BUYER' | 'SUPPLIER' }) {
 function BuyerSamples() {
   return (
     <>
-      <div className="grid grid-cols-[1.2fr_.8fr] gap-5">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1.2fr_.8fr]">
         <Card className="overflow-hidden p-0">
           <div className="bg-[#061F46] p-6 text-white">
             <p className="text-sm font-black uppercase tracking-[.14em] text-[#FFCF4D]">Buyer sample access</p>
@@ -124,32 +124,34 @@ function BuyerSamples() {
         </Card>
       </div>
 
-      <div className="mt-5 grid grid-cols-[1fr_.82fr] gap-5">
+      <div className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-[1fr_.82fr]">
         <Card className="p-5">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-xl font-black">Sample RFQs</h2>
             <Pill tone="blue">Preview only</Pill>
           </div>
-          <table className="w-full text-left text-sm">
-            <thead className="text-xs font-black uppercase tracking-[.08em] text-slate-500">
-              <tr>
-                <th className="py-3">RFQ</th>
-                <th>Category</th>
-                <th>Status</th>
-                <th>Signal</th>
-              </tr>
-            </thead>
-            <tbody className="font-bold">
-              {buyerRfqs.map((row) => (
-                <tr key={row[0]} className="border-t border-[#DFE9F7]">
-                  <td className="py-4">{row[0]}</td>
-                  <td>{row[1]}</td>
-                  <td><Pill tone={row[2].includes('Open') ? 'green' : 'gray'}>{row[2]}</Pill></td>
-                  <td className="text-[#155EEF]">{row[3]}</td>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[640px] text-left text-sm">
+              <thead className="text-xs font-black uppercase tracking-[.08em] text-slate-500">
+                <tr>
+                  <th className="py-3">RFQ</th>
+                  <th>Category</th>
+                  <th>Status</th>
+                  <th>Signal</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="font-bold">
+                {buyerRfqs.map((row) => (
+                  <tr key={row[0]} className="border-t border-[#DFE9F7]">
+                    <td className="py-4">{row[0]}</td>
+                    <td>{row[1]}</td>
+                    <td><Pill tone={row[2].includes('Open') ? 'green' : 'gray'}>{row[2]}</Pill></td>
+                    <td className="text-[#155EEF]">{row[3]}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </Card>
 
         <Card className="p-5">
@@ -181,7 +183,7 @@ function BuyerSamples() {
 function SupplierSamples() {
   return (
     <>
-      <div className="grid grid-cols-[1.2fr_.8fr] gap-5">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1.2fr_.8fr]">
         <Card className="overflow-hidden p-0">
           <div className="bg-[#061F46] p-6 text-white">
             <p className="text-sm font-black uppercase tracking-[.14em] text-[#FFCF4D]">Supplier sample access</p>
@@ -219,32 +221,34 @@ function SupplierSamples() {
         </Card>
       </div>
 
-      <div className="mt-5 grid grid-cols-[1fr_.82fr] gap-5">
+      <div className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-[1fr_.82fr]">
         <Card className="p-5">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-xl font-black">Opportunity Samples</h2>
             <Pill tone="blue">Preview only</Pill>
           </div>
-          <table className="w-full text-left text-sm">
-            <thead className="text-xs font-black uppercase tracking-[.08em] text-slate-500">
-              <tr>
-                <th className="py-3">Opportunity</th>
-                <th>Category</th>
-                <th>Fit</th>
-                <th>Preview</th>
-              </tr>
-            </thead>
-            <tbody className="font-bold">
-              {supplierOpportunities.map((row) => (
-                <tr key={row[0]} className="border-t border-[#DFE9F7]">
-                  <td className="py-4">{row[0]}</td>
-                  <td>{row[1]}</td>
-                  <td><Pill tone={row[2] === 'High fit' ? 'green' : 'gray'}>{row[2]}</Pill></td>
-                  <td className="text-[#155EEF]">{row[3]}</td>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[640px] text-left text-sm">
+              <thead className="text-xs font-black uppercase tracking-[.08em] text-slate-500">
+                <tr>
+                  <th className="py-3">Opportunity</th>
+                  <th>Category</th>
+                  <th>Fit</th>
+                  <th>Preview</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="font-bold">
+                {supplierOpportunities.map((row) => (
+                  <tr key={row[0]} className="border-t border-[#DFE9F7]">
+                    <td className="py-4">{row[0]}</td>
+                    <td>{row[1]}</td>
+                    <td><Pill tone={row[2] === 'High fit' ? 'green' : 'gray'}>{row[2]}</Pill></td>
+                    <td className="text-[#155EEF]">{row[3]}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </Card>
 
         <Card className="p-5">
@@ -295,7 +299,7 @@ export default function SamplesPage() {
             This sample area helps your team understand TheDigiHubs before requesting full plan access.
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row">
           <Link href={dashboardHref} className="inline-flex items-center gap-2 rounded-xl border border-[#DFE9F7] bg-white px-5 py-3 text-sm font-black text-[#155EEF]">
             Open Dashboard <ArrowRight size={15} />
           </Link>

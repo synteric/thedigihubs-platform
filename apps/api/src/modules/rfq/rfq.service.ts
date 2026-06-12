@@ -1,6 +1,7 @@
-import { randomUUID } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { OrganizationType, Prisma, QuoteStatus, RfqStatus, RoleKey } from '@prisma/client';
+import { OrganizationType, Prisma, QuoteStatus, RfqMessageVisibility, RfqStatus, RoleKey, SupplierVerificationStatus } from '@prisma/client';
+import bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { MatchingService } from '../matching/matching.service';
@@ -38,6 +39,7 @@ type SupplierQuoteInput = {
   warranty?: string;
   commercialNotes?: string;
   technicalResponse?: Record<string, unknown>;
+  supportingDocuments?: Array<Record<string, unknown>>;
   status?: 'DRAFT' | 'SUBMITTED';
 };
 
@@ -49,6 +51,13 @@ type QuoteDecisionInput = {
 type AwardQuoteInput = {
   quoteId: string;
   decisionNote?: string;
+};
+
+type RfqMessageInput = {
+  body: string;
+  subject?: string;
+  supplierProfileId?: string;
+  quoteId?: string;
 };
 
 type EvaluationSupplierProfile = {
@@ -78,6 +87,9 @@ export class RfqService {
       name: document.name,
       size: document.size,
       type: document.type || 'application/octet-stream',
+      category: document.category || 'RFQ Document',
+      ...(document.storageKey ? { storageKey: document.storageKey } : {}),
+      ...(document.url ? { url: document.url } : {}),
     }));
 
     const rfq = await this.prisma.rfq.create({
@@ -187,14 +199,7 @@ export class RfqService {
       throw new ForbiddenException('A supplier organization is required to view matched opportunities');
     }
 
-    const supplierProfile = await this.prisma.supplierProfile.findUnique({
-      where: { organizationId: tenant.activeOrganization.id },
-      select: { id: true },
-    });
-
-    if (!supplierProfile) {
-      return [];
-    }
+    const supplierProfile = await this.resolveSupplierProfileForTenant(tenant);
 
     const matches = await this.prisma.supplierMatch.findMany({
       where: { supplierProfileId: supplierProfile.id },
@@ -330,9 +335,10 @@ export class RfqService {
       const match = rfq.matches.find((candidate) => candidate.supplierProfileId === quote.supplierProfileId);
       const supplierProfile = quote.supplierProfile;
       const supplierName = supplierProfile?.organization.name || quote.externalEmail || 'External supplier';
+      const supportingDocuments = this.formatQuoteDocuments(quote.supportingDocuments);
       const matchScore = match ? Math.round(match.score) : null;
       const commercialScore = this.scoreCommercial(amount, lowestAmount, quote.validityDays, longestValidity);
-      const technicalScore = this.scoreTechnical(quote.technicalResponse, quote.commercialNotes, quote.warranty);
+      const technicalScore = this.scoreTechnical(quote.technicalResponse, quote.commercialNotes, quote.warranty, supportingDocuments.length);
       const deliveryScore = this.scoreDelivery(quote.deliveryDays, fastestDelivery);
       const supplierFitScore = this.scoreSupplierFit(supplierProfile, rfq.category, rfq.country, matchScore);
       const riskScore = this.scoreRisk(supplierProfile, quote.warranty);
@@ -350,6 +356,7 @@ export class RfqService {
         fastestDelivery,
         technicalResponse: quote.technicalResponse,
         warranty: quote.warranty,
+        supportingDocumentCount: supportingDocuments.length,
         supplierProfile,
       });
       const clarifications = this.clarificationQuestions(flags, supplierName);
@@ -364,6 +371,7 @@ export class RfqService {
 
       return {
         quoteId: quote.id,
+        supplierProfileId: quote.supplierProfileId,
         supplierName,
         supplierOrganizationId: supplierProfile?.organizationId || null,
         quoteStatus: quote.status,
@@ -375,6 +383,7 @@ export class RfqService {
         submittedAt: quote.submittedAt.toISOString(),
         technicalSummary: this.technicalSummary(quote.technicalResponse),
         commercialNotes: quote.commercialNotes,
+        supportingDocuments,
         supplier: {
           verificationStatus: supplierProfile?.verificationStatus || 'UNVERIFIED',
           rating: supplierProfile?.rating || 0,
@@ -502,6 +511,120 @@ export class RfqService {
       ],
       quotes: rankedQuotes,
     };
+  }
+
+  async listMessages(id: string, tenant: TenantContext, supplierProfileId?: string) {
+    const rfq = await this.prisma.rfq.findUnique({
+      where: { id },
+      include: {
+        invites: { include: { supplierProfile: { include: { organization: true } } } },
+        quotes: { include: { supplierProfile: { include: { organization: true } } } },
+        matches: { include: { supplierProfile: { include: { organization: true } } } },
+      },
+    });
+    if (!rfq) throw new NotFoundException('RFQ not found');
+    this.assertCanAccessRfq(rfq, tenant);
+
+    const where: Prisma.RfqMessageWhereInput = { rfqId: id };
+
+    if (tenant.activeOrganization.type === OrganizationType.SUPPLIER) {
+      const supplierProfile = await this.resolveSupplierProfileForTenant(tenant);
+      where.OR = [
+        { supplierProfileId: supplierProfile.id },
+        { supplierProfileId: null },
+      ];
+    } else if (supplierProfileId?.trim()) {
+      where.supplierProfileId = supplierProfileId.trim();
+    }
+
+    const messages = await this.prisma.rfqMessage.findMany({
+      where,
+      orderBy: { createdAt: 'asc' },
+      take: 100,
+    });
+
+    return messages.map((message) => this.formatRfqMessage(message));
+  }
+
+  async createMessage(id: string, dto: RfqMessageInput, tenant: TenantContext) {
+    const body = dto.body?.trim();
+    const subject = dto.subject?.trim() || undefined;
+
+    if (!body) {
+      throw new BadRequestException('Message body is required');
+    }
+    if (body.length > 4000) {
+      throw new BadRequestException('Message body must be 4,000 characters or fewer');
+    }
+
+    const rfq = await this.prisma.rfq.findUnique({
+      where: { id },
+      include: {
+        invites: { include: { supplierProfile: { include: { organization: true } } } },
+        quotes: { include: { supplierProfile: { include: { organization: true } } } },
+        matches: { include: { supplierProfile: { include: { organization: true } } } },
+      },
+    });
+    if (!rfq) throw new NotFoundException('RFQ not found');
+    this.assertCanAccessRfq(rfq, tenant);
+
+    let targetSupplierProfileId = dto.supplierProfileId?.trim() || undefined;
+    const quoteId = dto.quoteId?.trim() || undefined;
+
+    if (tenant.activeOrganization.type === OrganizationType.SUPPLIER) {
+      const supplierProfile = await this.resolveSupplierProfileForTenant(tenant);
+      targetSupplierProfileId = supplierProfile.id;
+    } else {
+      this.assertBuyerTenant(rfq.buyerOrganizationId, tenant);
+      if (targetSupplierProfileId) {
+        this.assertSupplierBelongsToRfq(rfq, targetSupplierProfileId);
+      }
+    }
+
+    if (quoteId) {
+      const quote = rfq.quotes.find((item) => item.id === quoteId);
+      if (!quote) {
+        throw new BadRequestException('Quote does not belong to this RFQ');
+      }
+      if (quote.supplierProfileId) {
+        if (targetSupplierProfileId && targetSupplierProfileId !== quote.supplierProfileId) {
+          throw new BadRequestException('Quote and supplier target do not match');
+        }
+        targetSupplierProfileId = quote.supplierProfileId;
+      }
+    }
+
+    const message = await this.prisma.rfqMessage.create({
+      data: {
+        rfqId: id,
+        supplierProfileId: targetSupplierProfileId,
+        quoteId,
+        senderUserId: tenant.user.id,
+        senderUserName: tenant.user.name,
+        senderOrganizationId: tenant.activeOrganization.id,
+        senderOrganizationName: tenant.activeOrganization.name,
+        senderOrganizationType: tenant.activeOrganization.type,
+        subject,
+        body,
+        visibility: RfqMessageVisibility.BUYER_SUPPLIER,
+      },
+    });
+
+    await this.audit.record({
+      actorId: tenant.user.id,
+      rfqId: id,
+      action: 'RFQ_MESSAGE_CREATED',
+      entity: 'RfqMessage',
+      entityId: message.id,
+      metadata: {
+        reference: rfq.reference,
+        supplierProfileId: targetSupplierProfileId || null,
+        quoteId: quoteId || null,
+        senderOrganizationId: tenant.activeOrganization.id,
+      },
+    });
+
+    return this.formatRfqMessage(message);
   }
 
   async updateQuoteDecision(id: string, quoteId: string, dto: QuoteDecisionInput, tenant: TenantContext) {
@@ -659,13 +782,7 @@ export class RfqService {
       throw new ForbiddenException('A supplier organization is required to view RFQ opportunities');
     }
 
-    const supplierProfile = await this.prisma.supplierProfile.findUnique({
-      where: { organizationId: tenant.activeOrganization.id },
-      select: { id: true },
-    });
-    if (!supplierProfile) {
-      throw new ForbiddenException('A supplier profile is required to view RFQ opportunities');
-    }
+    const supplierProfile = await this.resolveSupplierProfileForTenant(tenant);
 
     const rfq = await this.prisma.rfq.findUnique({
       where: { id },
@@ -681,6 +798,15 @@ export class RfqService {
         matches: {
           where: { supplierProfileId: supplierProfile.id },
           include: { supplierProfile: { include: { organization: true } } },
+        },
+        messages: {
+          where: {
+            OR: [
+              { supplierProfileId: supplierProfile.id },
+              { supplierProfileId: null },
+            ],
+          },
+          orderBy: { createdAt: 'asc' },
         },
       },
     });
@@ -742,8 +868,10 @@ export class RfqService {
         warranty: quote.warranty,
         technicalResponse: quote.technicalResponse,
         commercialNotes: quote.commercialNotes,
+        supportingDocuments: this.formatQuoteDocuments(quote.supportingDocuments),
         submittedAt: quote.submittedAt.toISOString(),
       } : null,
+      messages: rfq.messages.map((message) => this.formatRfqMessage(message)),
       canQuote: rfq.status === RfqStatus.PUBLISHED || rfq.status === RfqStatus.QUOTATION_OPEN,
     };
   }
@@ -753,13 +881,7 @@ export class RfqService {
       throw new ForbiddenException('A supplier organization is required to submit quotes');
     }
 
-    const supplierProfile = await this.prisma.supplierProfile.findUnique({
-      where: { organizationId: tenant.activeOrganization.id },
-      select: { id: true },
-    });
-    if (!supplierProfile) {
-      throw new ForbiddenException('A supplier profile is required to submit quotes');
-    }
+    const supplierProfile = await this.resolveSupplierProfileForTenant(tenant);
 
     const rfq = await this.prisma.rfq.findUnique({
       where: { id },
@@ -786,6 +908,7 @@ export class RfqService {
     });
 
     const technicalResponse = (dto.technicalResponse || {}) as Prisma.InputJsonObject;
+    const supportingDocuments = this.normalizeQuoteDocuments(dto.supportingDocuments);
     const quoteData = {
       totalAmount: new Prisma.Decimal(dto.totalAmount),
       currency: dto.currency || rfq.currency,
@@ -795,6 +918,7 @@ export class RfqService {
       status,
       technicalResponse,
       commercialNotes: dto.commercialNotes,
+      supportingDocuments,
     };
 
     const quote = existingQuote
@@ -821,6 +945,7 @@ export class RfqService {
         supplierOrganizationId: tenant.activeOrganization.id,
         totalAmount: quote.totalAmount.toString(),
         currency: quote.currency,
+        supportingDocuments: supportingDocuments.length,
       },
     });
 
@@ -834,6 +959,7 @@ export class RfqService {
       warranty: quote.warranty,
       technicalResponse: quote.technicalResponse,
       commercialNotes: quote.commercialNotes,
+      supportingDocuments: this.formatQuoteDocuments(quote.supportingDocuments),
       submittedAt: quote.submittedAt.toISOString(),
     };
   }
@@ -894,12 +1020,13 @@ export class RfqService {
     return this.clampScore(priceScore * 0.82 + validityScore * 0.18);
   }
 
-  private scoreTechnical(technicalResponse: Prisma.JsonValue | null, commercialNotes?: string | null, warranty?: string | null) {
+  private scoreTechnical(technicalResponse: Prisma.JsonValue | null, commercialNotes?: string | null, warranty?: string | null, supportingDocumentCount = 0) {
     const summaryLength = this.technicalSummary(technicalResponse).length;
     const responseScore = summaryLength >= 300 ? 100 : summaryLength >= 120 ? 84 : summaryLength >= 40 ? 66 : 35;
     const warrantyScore = warranty?.trim() ? 88 : 44;
     const notesScore = commercialNotes?.trim() ? 78 : 50;
-    return this.clampScore(responseScore * 0.65 + warrantyScore * 0.2 + notesScore * 0.15);
+    const documentScore = supportingDocumentCount > 0 ? 90 : 45;
+    return this.clampScore(responseScore * 0.56 + warrantyScore * 0.18 + notesScore * 0.14 + documentScore * 0.12);
   }
 
   private scoreDelivery(deliveryDays: number, fastestDelivery: number) {
@@ -954,6 +1081,7 @@ export class RfqService {
     fastestDelivery: number;
     technicalResponse: Prisma.JsonValue | null;
     warranty?: string | null;
+    supportingDocumentCount: number;
     supplierProfile: EvaluationSupplierProfile;
   }) {
     const flags: string[] = [];
@@ -975,6 +1103,9 @@ export class RfqService {
     if (!input.warranty?.trim()) {
       flags.push('Warranty or support terms are missing');
     }
+    if (input.supportingDocumentCount === 0) {
+      flags.push('Quote supporting documents are missing');
+    }
     if (!input.supplierProfile || input.supplierProfile.verificationStatus !== 'VERIFIED') {
       flags.push('Supplier verification should be checked');
     }
@@ -991,6 +1122,7 @@ export class RfqService {
       if (flag.includes('Delivery')) return `Ask ${supplierName} to confirm whether delivery can be accelerated without changing scope.`;
       if (flag.includes('Technical')) return `Ask ${supplierName} to expand the technical approach, delivery assumptions, and implementation controls.`;
       if (flag.includes('Warranty')) return `Ask ${supplierName} to clarify warranty, support coverage, and escalation commitments.`;
+      if (flag.includes('supporting documents')) return `Ask ${supplierName} to provide proposal, pricing, compliance, or certification documents for review.`;
       if (flag.includes('verification')) return `Confirm ${supplierName}'s verification status and required compliance documents.`;
       if (flag.includes('response rate')) return `Ask ${supplierName} to confirm response-time commitments during delivery.`;
       return `Clarify ${flag.toLowerCase()} with ${supplierName}.`;
@@ -1047,6 +1179,67 @@ export class RfqService {
     return typeof summary === 'string' ? summary : '';
   }
 
+  private normalizeQuoteDocuments(documents?: Array<Record<string, unknown>>): Prisma.InputJsonArray {
+    if (!Array.isArray(documents)) return [];
+
+    return documents.slice(0, 10).map((document, index) => {
+      const name = typeof document.name === 'string' && document.name.trim()
+        ? document.name.trim()
+        : `Quote document ${index + 1}`;
+      const type = typeof document.type === 'string' && document.type.trim()
+        ? document.type.trim()
+        : 'application/octet-stream';
+      const size = typeof document.size === 'number' || typeof document.size === 'string'
+        ? document.size
+        : '';
+      const category = typeof document.category === 'string' && document.category.trim()
+        ? document.category.trim()
+        : 'Quote Document';
+      const url = typeof document.url === 'string' && document.url.trim()
+        ? document.url.trim()
+        : undefined;
+      const storageKey = typeof document.storageKey === 'string' && document.storageKey.trim()
+        ? document.storageKey.trim()
+        : undefined;
+
+      return {
+        name,
+        type,
+        size,
+        category,
+        ...(storageKey ? { storageKey } : {}),
+        ...(url ? { url } : {}),
+      };
+    }) as Prisma.InputJsonArray;
+  }
+
+  private formatQuoteDocuments(value: Prisma.JsonValue | null | undefined) {
+    if (!Array.isArray(value)) return [];
+
+    return value.map((document, index) => {
+      if (!document || typeof document !== 'object' || Array.isArray(document)) {
+        return {
+          name: `Quote document ${index + 1}`,
+          type: 'FILE',
+          size: '',
+          category: 'Quote Document',
+          storageKey: null,
+          url: null,
+        };
+      }
+
+      const record = document as Record<string, unknown>;
+      return {
+        name: typeof record.name === 'string' && record.name.trim() ? record.name : `Quote document ${index + 1}`,
+        type: typeof record.type === 'string' && record.type.trim() ? record.type : 'FILE',
+        size: typeof record.size === 'number' || typeof record.size === 'string' ? String(record.size) : '',
+        category: typeof record.category === 'string' && record.category.trim() ? record.category : 'Quote Document',
+        storageKey: typeof record.storageKey === 'string' && record.storageKey.trim() ? record.storageKey : null,
+        url: typeof record.url === 'string' && record.url.trim() ? record.url : null,
+      };
+    });
+  }
+
   private sameText(a: string, b: string) {
     return a.trim().toLowerCase() === b.trim().toLowerCase();
   }
@@ -1054,6 +1247,76 @@ export class RfqService {
   private clampScore(value: number) {
     if (!Number.isFinite(value)) return 0;
     return Math.max(0, Math.min(100, Math.round(value)));
+  }
+
+  private async resolveSupplierProfileForTenant(tenant: TenantContext) {
+    if (tenant.activeOrganization.type !== OrganizationType.SUPPLIER) {
+      throw new ForbiddenException('A supplier organization is required');
+    }
+
+    const supplierProfile = await this.prisma.supplierProfile.findUnique({
+      where: { organizationId: tenant.activeOrganization.id },
+      select: { id: true, verificationStatus: true },
+    });
+    if (!supplierProfile) {
+      throw new ForbiddenException('A supplier profile is required');
+    }
+    if (supplierProfile.verificationStatus === SupplierVerificationStatus.SUSPENDED) {
+      throw new ForbiddenException('This supplier profile is suspended from quotation activity');
+    }
+
+    return supplierProfile;
+  }
+
+  private assertSupplierBelongsToRfq(
+    rfq: {
+      matches: Array<{ supplierProfileId: string }>;
+      quotes: Array<{ supplierProfileId: string | null }>;
+      invites: Array<{ supplierProfileId: string | null }>;
+    },
+    supplierProfileId: string,
+  ) {
+    const belongsToRfq = rfq.matches.some((match) => match.supplierProfileId === supplierProfileId)
+      || rfq.quotes.some((quote) => quote.supplierProfileId === supplierProfileId)
+      || rfq.invites.some((invite) => invite.supplierProfileId === supplierProfileId);
+
+    if (!belongsToRfq) {
+      throw new BadRequestException('Supplier is not linked to this RFQ');
+    }
+  }
+
+  private formatRfqMessage(message: {
+    id: string;
+    rfqId: string;
+    supplierProfileId: string | null;
+    quoteId: string | null;
+    senderUserId: string;
+    senderUserName: string;
+    senderOrganizationId: string;
+    senderOrganizationName: string;
+    senderOrganizationType: OrganizationType;
+    subject: string | null;
+    body: string;
+    visibility: RfqMessageVisibility;
+    createdAt: Date;
+    updatedAt: Date;
+  }) {
+    return {
+      id: message.id,
+      rfqId: message.rfqId,
+      supplierProfileId: message.supplierProfileId,
+      quoteId: message.quoteId,
+      senderUserId: message.senderUserId,
+      senderUserName: message.senderUserName,
+      senderOrganizationId: message.senderOrganizationId,
+      senderOrganizationName: message.senderOrganizationName,
+      senderOrganizationType: message.senderOrganizationType,
+      subject: message.subject,
+      body: message.body,
+      visibility: message.visibility,
+      createdAt: message.createdAt.toISOString(),
+      updatedAt: message.updatedAt.toISOString(),
+    };
   }
 
   private async resolveBuyerContext(dto: CreateRfqDto, tenant?: TenantContext) {
@@ -1105,7 +1368,7 @@ export class RfqService {
       data: {
         email: `buyer+${organization.id}@thedigihubs.local`,
         name: 'Procurement Manager',
-        passwordHash: 'dev-placeholder-hash',
+        passwordHash: await bcrypt.hash(randomBytes(32).toString('base64url'), 12),
         role: RoleKey.BUYER_MANAGER,
         organizationId: organization.id,
       },

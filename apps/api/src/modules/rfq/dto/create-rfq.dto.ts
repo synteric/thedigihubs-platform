@@ -30,6 +30,18 @@ class RfqDocumentDto {
   @IsString()
   @IsOptional()
   type?: string;
+
+  @IsString()
+  @IsOptional()
+  category?: string;
+
+  @IsString()
+  @IsOptional()
+  storageKey?: string;
+
+  @IsString()
+  @IsOptional()
+  url?: string;
 }
 
 class RfqExternalInviteDto {
