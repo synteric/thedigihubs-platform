@@ -1,4 +1,4 @@
-import { apiFetch, apiUrl } from './api';
+import { apiErrorMessage, apiFetch, apiUrl } from './api';
 
 export type UploadedDocument = {
   name: string;
@@ -20,7 +20,7 @@ export async function uploadDocument(file: File, category?: string): Promise<Upl
   });
 
   if (!response.ok) {
-    throw new Error(`Unable to upload ${file.name}. Status ${response.status}.`);
+    throw new Error(await apiErrorMessage(response, `Unable to upload ${file.name}. Status ${response.status}.`));
   }
 
   const uploaded = await response.json() as UploadedDocument;

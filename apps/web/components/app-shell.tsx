@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Bell, Building2, ChevronDown, ChevronsLeft, ChevronsRight, HelpCircle, LogOut, Mail, Search, Settings, User } from 'lucide-react';
+import { Bell, Building2, ChevronDown, ChevronsLeft, ChevronsRight, HelpCircle, LogOut, Mail, Menu, Search, Settings, User, X } from 'lucide-react';
 import { Logo } from './brand';
 import { formatRole, useSession } from '../lib/session';
 import type { OrganizationType, RoleKey } from '../lib/session';
@@ -37,7 +37,7 @@ export function AccountDropdown({ name, role, onLogout }: { name: string; role: 
         </div>
       ))}
       <div className="my-2 border-t border-[#DFE9F7]" />
-      <button className="flex w-full gap-3 rounded-xl px-2 py-3 text-left text-red-600 hover:bg-red-50" onClick={onLogout}>
+      <button type="button" className="flex w-full gap-3 rounded-xl px-2 py-3 text-left text-red-600 hover:bg-red-50" onClick={onLogout}>
         <LogOut size={18}/><p className="text-sm font-extrabold">Sign out</p>
       </button>
     </div>
@@ -70,6 +70,7 @@ export function AppShell({
   const { session, loading, logout, hasOrganizationType, hasRole } = useSession();
   const [collapsed, setCollapsed] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
   const sessionName = session?.user.name || name;
@@ -92,7 +93,20 @@ export function AppShell({
 
   useEffect(() => {
     setAccountOpen(false);
+    setMobileNavOpen(false);
   }, [pathname]);
+
+  const mobilePrimaryNav = nav.filter((item) => item.href || item.active || item.label === active).slice(0, 4);
+
+  function navClasses(isActive: boolean, compact = false, disabled = false) {
+    return `flex items-center gap-4 rounded-xl px-4 py-3 text-sm font-extrabold transition ${compact ? 'justify-center' : ''} ${
+      isActive
+        ? 'bg-blue-50 text-[#155EEF] ring-1 ring-blue-100'
+        : disabled
+          ? 'cursor-default text-slate-400'
+          : 'text-[#0B1744] hover:bg-blue-50 hover:text-[#155EEF]'
+    }`;
+  }
 
   return (
     <div className="min-h-screen bg-[#F8FBFF] text-[#0B1744]">
@@ -137,11 +151,23 @@ export function AppShell({
       <aside className={`fixed bottom-0 left-0 top-[76px] z-30 hidden border-r border-[#DFE9F7] bg-white py-6 transition-[width] lg:block ${collapsed ? 'w-[82px] px-3' : 'w-[250px] px-5'}`}>
         <nav className="space-y-2">
           {nav.map((item) => {
-            const itemHref = item.href || '#';
             const isActive = item.active || item.label === active || Boolean(item.href && pathname === item.href);
-            return (
-              <Link key={item.label} href={itemHref} title={collapsed ? item.label : undefined} className={`flex items-center gap-4 rounded-xl px-4 py-3 text-sm font-extrabold transition ${collapsed ? 'justify-center' : ''} ${isActive ? 'bg-blue-50 text-[#155EEF] ring-1 ring-blue-100' : 'text-[#0B1744] hover:bg-blue-50 hover:text-[#155EEF]'}`}>
+            const itemClassName = navClasses(isActive, collapsed, !item.href);
+            const content = (
+              <>
                 <span className={isActive ? 'text-[#155EEF]' : 'text-[#1F3767]'}>{item.icon}</span>{!collapsed && item.label}
+              </>
+            );
+            if (!item.href) {
+              return (
+                <div key={item.label} title={collapsed ? item.label : undefined} className={itemClassName} aria-disabled="true">
+                  {content}
+                </div>
+              );
+            }
+            return (
+              <Link key={item.label} href={item.href} title={collapsed ? item.label : undefined} className={itemClassName}>
+                {content}
               </Link>
             );
           })}
@@ -154,17 +180,69 @@ export function AppShell({
           {!loading && allowed && children}
         </div>
       </main>
-      <nav className="fixed inset-x-0 bottom-0 z-40 flex gap-2 overflow-x-auto border-t border-[#DFE9F7] bg-white/95 px-3 py-2 shadow-[0_-14px_34px_rgba(16,33,63,.08)] backdrop-blur lg:hidden">
-        {nav.map((item) => {
-          const itemHref = item.href || '#';
+      {mobileNavOpen && (
+        <>
+          <button
+            type="button"
+            aria-label="Close workspace menu overlay"
+            className="fixed inset-0 z-30 bg-[#0B1744]/10 backdrop-blur-[1px] lg:hidden"
+            onClick={() => setMobileNavOpen(false)}
+          />
+          <div className="fixed inset-x-3 bottom-[calc(76px+env(safe-area-inset-bottom))] z-40 rounded-[24px] border border-[#DFE9F7] bg-white p-3 shadow-[0_-18px_54px_rgba(16,33,63,.16)] lg:hidden">
+            <div className="mb-2 flex items-center justify-between px-2">
+              <p className="text-xs font-black uppercase tracking-[.16em] text-slate-400">Workspace Menu</p>
+              <button type="button" aria-label="Close workspace menu" className="grid h-9 w-9 place-items-center rounded-full bg-slate-50 text-[#0B1744]" onClick={() => setMobileNavOpen(false)}>
+                <X size={17} />
+              </button>
+            </div>
+            <div className="grid max-h-[52vh] gap-1 overflow-y-auto pr-1">
+              {nav.map((item) => {
+                const isActive = item.active || item.label === active || Boolean(item.href && pathname === item.href);
+                const className = `flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-black ${isActive ? 'bg-blue-50 text-[#155EEF]' : item.href ? 'text-[#0B1744]' : 'text-slate-400'}`;
+                const content = (
+                  <>
+                    <span className={isActive ? 'text-[#155EEF]' : 'text-[#1F3767]'}>{item.icon}</span>
+                    <span className="truncate">{item.label}</span>
+                  </>
+                );
+                return item.href ? (
+                  <Link key={item.label} href={item.href} className={className}>
+                    {content}
+                  </Link>
+                ) : (
+                  <div key={item.label} className={className} aria-disabled="true">
+                    {content}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </>
+      )}
+      <nav className="fixed inset-x-0 bottom-0 z-40 flex gap-2 border-t border-[#DFE9F7] bg-white/95 px-3 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2 shadow-[0_-14px_34px_rgba(16,33,63,.08)] backdrop-blur lg:hidden">
+        {mobilePrimaryNav.map((item) => {
           const isActive = item.active || item.label === active || Boolean(item.href && pathname === item.href);
-          return (
-            <Link key={item.label} href={itemHref} className={`flex min-w-[74px] flex-1 flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 text-[11px] font-black ${isActive ? 'bg-blue-50 text-[#155EEF]' : 'text-slate-600'}`}>
+          const className = `flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 text-[11px] font-black ${isActive ? 'bg-blue-50 text-[#155EEF]' : item.href ? 'text-slate-600' : 'text-slate-400'}`;
+          const content = (
+            <>
               <span className={isActive ? 'text-[#155EEF]' : 'text-[#1F3767]'}>{item.icon}</span>
-              <span className="max-w-[80px] truncate">{item.label}</span>
+              <span className="max-w-full truncate">{item.label}</span>
+            </>
+          );
+          return item.href ? (
+            <Link key={item.label} href={item.href} className={className}>
+              {content}
             </Link>
+          ) : (
+            <div key={item.label} className={className} aria-disabled="true">
+              {content}
+            </div>
           );
         })}
+        <button type="button" aria-expanded={mobileNavOpen} aria-label="Open workspace menu" className={`flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 text-[11px] font-black ${mobileNavOpen ? 'bg-blue-50 text-[#155EEF]' : 'text-slate-600'}`} onClick={() => setMobileNavOpen((current) => !current)}>
+          <Menu size={20} />
+          <span>Menu</span>
+        </button>
       </nav>
     </div>
   );

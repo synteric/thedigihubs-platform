@@ -3,7 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { apiFetch } from './api';
+import { apiErrorMessage, apiFetch } from './api';
 
 export type OrganizationType = 'BUYER' | 'SUPPLIER' | 'PLATFORM';
 export type RoleKey =
@@ -110,7 +110,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       body: JSON.stringify({ organizationId }),
     });
     if (!response.ok) {
-      throw new Error('Unable to switch organization');
+      throw new Error(await apiErrorMessage(response, 'Unable to switch organization'));
     }
     const payload = await response.json() as SessionPayload;
     setSession(payload);

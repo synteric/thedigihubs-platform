@@ -6,7 +6,7 @@ import { BarChart3, BriefcaseBusiness, CalendarDays, FileText, Folder, MessageSq
 import { AppShell } from '../../components/app-shell';
 import { PlanAccessCard } from '../../components/plan-access-card';
 import { Card, Kpi, LineChart, Pill } from '../../components/ui';
-import { apiFetch } from '../../lib/api';
+import { apiErrorMessage, apiFetch } from '../../lib/api';
 import { useSession } from '../../lib/session';
 
 type SupplierOpportunity = {
@@ -25,13 +25,13 @@ type SupplierOpportunity = {
 };
 
 const nav = [
-  { label: 'Overview', icon: <BriefcaseBusiness size={20} />, active: true },
-  { label: 'Matched Opportunities', icon: <Target size={20} /> },
-  { label: 'Quotes', icon: <FileText size={20} /> },
+  { label: 'Overview', icon: <BriefcaseBusiness size={20} />, href: '/supplier', active: true },
+  { label: 'Matched Opportunities', icon: <Target size={20} />, href: '#matched-opportunities' },
+  { label: 'Quotes', icon: <FileText size={20} />, href: '#quote-pipeline' },
   { label: 'Orders', icon: <ShoppingCart size={20} /> },
-  { label: 'Buyers', icon: <UsersRound size={20} /> },
-  { label: 'Performance', icon: <BarChart3 size={20} /> },
-  { label: 'Documents', icon: <Folder size={20} /> },
+  { label: 'Buyers', icon: <UsersRound size={20} />, href: '#buyer-engagement' },
+  { label: 'Performance', icon: <BarChart3 size={20} />, href: '#quote-performance' },
+  { label: 'Documents', icon: <Folder size={20} />, href: '#matched-opportunities' },
   { label: 'Messages', icon: <MessageSquare size={20} /> },
   { label: 'Settings', icon: <Settings size={20} /> },
 ];
@@ -145,7 +145,7 @@ export default function Supplier() {
       try {
         const response = await apiFetch('/rfqs/supplier/opportunities', { method: 'GET' });
         if (!response.ok) {
-          throw new Error('Unable to load supplier opportunities');
+          throw new Error(await apiErrorMessage(response, 'Unable to load supplier opportunities'));
         }
 
         const data = await response.json();
@@ -275,7 +275,7 @@ export default function Supplier() {
         </Card>
 
         <div className="space-y-5">
-          <Card className="p-5">
+          <Card className="scroll-mt-24 p-5" id="buyer-engagement">
             <div className="flex justify-between">
               <h2 className="text-xl font-black">Profile & Compliance</h2>
               <Pill tone="green">Verified Supplier</Pill>
@@ -310,7 +310,7 @@ export default function Supplier() {
       </div>
 
       <div className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-[1.1fr_.8fr_.9fr]">
-        <Card className="p-5">
+        <Card className="scroll-mt-24 p-5" id="quote-performance">
           <h2 className="text-xl font-black">Opportunity Activity Trend</h2>
           <LineChart />
         </Card>
@@ -343,7 +343,7 @@ export default function Supplier() {
         </Card>
       </div>
 
-      <Card className="mt-5 p-5">
+      <Card className="mt-5 scroll-mt-24 p-5" id="quote-pipeline">
         <h2 className="text-xl font-black">Quote Pipeline</h2>
         <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           {[

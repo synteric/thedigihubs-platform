@@ -39,7 +39,7 @@ export default function PrivacyPolicyPage() {
       <section className="px-8 py-16">
         <div className="mx-auto max-w-[1080px]">
           <Pill tone="blue">Privacy</Pill>
-          <h1 className="mt-6 max-w-3xl text-5xl font-black leading-[1.04] tracking-[-0.05em]">Privacy Policy</h1>
+          <h1 className="mt-6 max-w-3xl text-4xl font-black leading-[1.04] tracking-[-0.05em] sm:text-5xl">Privacy Policy</h1>
           <p className="mt-5 max-w-3xl text-lg font-semibold leading-8 text-slate-600">
             This page explains how TheDigiHubs handles public contact, registration, subscription, and platform access information.
           </p>

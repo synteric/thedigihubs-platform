@@ -26,14 +26,14 @@ type BuyerRfqSummary = {
 };
 
 const nav = [
-  { label: 'Overview', icon: <BriefcaseBusiness size={20} />, active: true },
-  { label: 'RFQs', icon: <FileText size={20} /> },
-  { label: 'Quotes', icon: <FileText size={20} /> },
-  { label: 'Suppliers', icon: <UsersRound size={20} /> },
-  { label: 'Awards', icon: <Trophy size={20} /> },
+  { label: 'Overview', icon: <BriefcaseBusiness size={20} />, href: '/buyer', active: true },
+  { label: 'RFQs', icon: <FileText size={20} />, href: '#quote-evaluation-queue' },
+  { label: 'Quotes', icon: <FileText size={20} />, href: '#quote-evaluation-queue' },
+  { label: 'Suppliers', icon: <UsersRound size={20} />, href: '/marketplace' },
+  { label: 'Awards', icon: <Trophy size={20} />, href: '#rfq-pipeline' },
   { label: 'Contracts', icon: <Building2 size={20} /> },
-  { label: 'Analytics', icon: <BarChart3 size={20} /> },
-  { label: 'Records', icon: <FileText size={20} /> },
+  { label: 'Analytics', icon: <BarChart3 size={20} />, href: '#rfq-pipeline' },
+  { label: 'Records', icon: <FileText size={20} />, href: '#recent-activity' },
   { label: 'Settings', icon: <Settings size={20} /> },
 ];
 
@@ -225,7 +225,7 @@ export default function BuyerDashboard() {
       </div>
 
       <div className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-[1.2fr_.9fr_.9fr]">
-        <Card className="overflow-x-auto p-5">
+        <Card className="scroll-mt-24 overflow-x-auto p-5" id="quote-evaluation-queue">
           <div className="flex justify-between">
             <h2 className="text-xl font-black">Quote Evaluation Queue</h2>
             <Link href={canCreateRfq ? '/rfq/new' : '/subscribe'} className="text-sm font-black text-[#155EEF]">
@@ -293,7 +293,7 @@ export default function BuyerDashboard() {
           )}
         </Card>
 
-        <Card className="p-5">
+        <Card className="scroll-mt-24 p-5" id="evaluation-highlights">
           <div className="flex justify-between">
             <h2 className="text-xl font-black">Evaluation Highlights</h2>
             {evaluationHighlights.length > 3 && (
@@ -317,7 +317,7 @@ export default function BuyerDashboard() {
           )}
         </Card>
 
-        <Card className="p-5">
+        <Card className="scroll-mt-24 p-5" id="recent-activity">
           <div className="flex justify-between">
             <h2 className="text-xl font-black">Recent Activity</h2>
             {rfqs.length > 5 && (
@@ -342,7 +342,7 @@ export default function BuyerDashboard() {
         </Card>
       </div>
 
-      <Card className="mt-5 p-5">
+      <Card className="mt-5 scroll-mt-24 p-5" id="rfq-pipeline">
         <div className="flex justify-between">
           <h2 className="text-xl font-black">RFQ Pipeline</h2>
           <Link href={canCreateRfq ? '/rfq/new' : '/subscribe'} className="text-sm font-black text-[#155EEF]">

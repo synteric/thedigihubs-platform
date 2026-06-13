@@ -7,6 +7,19 @@ import { AppModule } from './modules/app.module';
 type RateEntry = { count: number; resetAt: number };
 const rateBuckets = new Map<string, RateEntry>();
 
+function configuredOrigins(config: ConfigService) {
+  const origins = [
+    config.get<string>('WEB_ORIGIN'),
+    config.get<string>('FRONTEND_URL'),
+    config.get<string>('NEXT_PUBLIC_APP_URL'),
+  ]
+    .flatMap((value) => (value || '').split(','))
+    .map((value) => value.trim().replace(/\/$/, ''))
+    .filter(Boolean);
+
+  return Array.from(new Set(origins.length ? origins : ['http://localhost:3000']));
+}
+
 function rateLimit(request: any, response: any, next: () => void) {
   const path = String(request.path || request.url || '');
   if (path === '/health' || path === '/ready' || path === '/api/health' || path === '/api/ready') return next();
@@ -54,7 +67,7 @@ async function bootstrap() {
   app.use(helmet());
   app.use(rateLimit);
   app.enableCors({
-    origin: [config.get<string>('WEB_ORIGIN') || 'http://localhost:3000'],
+    origin: configuredOrigins(config),
     credentials: true,
   });
   app.setGlobalPrefix('api');

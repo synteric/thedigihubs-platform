@@ -13,8 +13,6 @@ import {
   Sparkles,
   UsersRound,
 } from 'lucide-react';
-import { LanguageSelector } from '../components/language-selector';
-const LanguageIcon = ((props: any) => <LanguageSelector />) as unknown as LucideIcon;
 import { Logo } from '../components/brand';
 import { PublicHeader } from '../components/public-header';
 import { Card, SectionTitle } from '../components/ui';
@@ -74,7 +72,7 @@ const heroCards: Array<IconCard & { className: string }> = [
   {
     title: 'Collaboration Hub',
     body: 'Work with your team and suppliers in real time',
-    icon: LanguageIcon,
+    icon: Globe2,
     tone: 'purple',
     className: 'right-[8%] bottom-7 w-[300px]',
   },
@@ -117,7 +115,7 @@ const outcomes: IconCard[] = [
   {
     title: 'Improve Sustainability',
     body: 'Track impact and source responsibly.',
-    icon: LanguageIcon,
+    icon: Globe2,
     tone: 'yellow',
   },
   {
@@ -162,7 +160,7 @@ const modules: IconCard[] = [
   {
     title: 'Supplier Collaboration',
     body: 'Work together seamlessly in real time',
-    icon: LanguageIcon,
+    icon: Globe2,
     tone: 'purple',
   },
   {

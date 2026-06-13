@@ -6,6 +6,7 @@ import { Logo } from './brand';
 import { PromoBanner } from './promo-banner';
 import { SolutionsDropdown } from './solutions-dropdown';
 import { LanguageSelector } from './language-selector';
+import PublicHeaderMobile from './public-header-mobile';
 import { useLocale } from '../lib/useLocale';
 
 export function PublicHeader() {
@@ -46,37 +47,9 @@ export function PublicHeader() {
             </Link>
           </div>
         </div>
-        <details className="ml-auto lg:hidden menu-mobile">
-          <summary className="grid h-10 w-10 place-items-center rounded-full border border-[#DFE9F7] bg-white text-[#0B1744] shadow-sm cursor-pointer">
-            <Menu size={18} />
-          </summary>
-          <div className="border-t border-[#E7EEF9] bg-white px-4 pb-4 pt-3 shadow-[0_18px_40px_rgba(16,33,63,.08)] sm:px-6">
-            <div className="mx-auto max-w-[720px]">
-              <div className="grid grid-cols-3 gap-2">
-                <Link href="/subscribe" className="rounded-full border border-[#BFD7FF] px-3 py-2 text-center text-xs font-black text-[#155EEF]">
-                  Subscribe
-                </Link>
-                <Link href="/login" className="rounded-full border border-[#DFE9F7] px-3 py-2 text-center text-xs font-black text-[#0B1744]">
-                  Log In
-                </Link>
-                <Link href="/contact" className="rounded-full bg-[#121D4D] px-3 py-2 text-center text-xs font-black text-white">
-                  Contact
-                </Link>
-              </div>
-              <div className="mt-4 grid gap-2 text-sm font-black text-[#0B1744]">
-                <p className="px-3 pt-2 text-[11px] uppercase tracking-[.18em] text-slate-400">Solutions</p>
-                <Link href="/solutions/buyers" className="rounded-xl px-3 py-2.5 hover:bg-blue-50">For Buyers</Link>
-                <Link href="/solutions/suppliers" className="rounded-xl px-3 py-2.5 hover:bg-blue-50">For Suppliers</Link>
-                <div className="my-1 border-t border-[#EEF3FA]" />
-                <Link href="/platform" className="rounded-xl px-3 py-2.5 hover:bg-blue-50">Platform</Link>
-                <Link href="/resources" className="rounded-xl px-3 py-2.5 hover:bg-blue-50">Resources</Link>
-                <Link href="/partners" className="rounded-xl px-3 py-2.5 hover:bg-blue-50">Partners</Link>
-                <Link href="/marketplace" className="rounded-xl px-3 py-2.5 hover:bg-blue-50">Search Marketplace</Link>
-                <Link href="/#why" className="rounded-xl px-3 py-2.5 hover:bg-blue-50">Why TheDigiHubs</Link>
-              </div>
-            </div>
-          </div>
-        </details>
+        <div className="ml-auto lg:hidden">
+          <PublicHeaderMobile />
+        </div>
       </div>
     </header>
   );

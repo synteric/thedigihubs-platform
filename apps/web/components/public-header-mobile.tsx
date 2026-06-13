@@ -2,8 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { ArrowRight, Menu, Search, X } from 'lucide-react';
-import { Logo } from './brand';
+import { Menu, X } from 'lucide-react';
 import { LanguageSelector } from './language-selector';
 import { useLocale } from '../lib/useLocale';
 
@@ -16,28 +15,28 @@ export default function PublicHeaderMobile() {
         <>
             <div className="ml-auto flex items-center gap-2 lg:hidden">
                 <Link href="/subscribe" onClick={closeMobile} className="hidden rounded-full border border-[#BFD7FF] px-3 py-2 text-xs font-black text-[#155EEF] sm:inline-flex">
-                    Subscribe
+                    {t.subscribe}
                 </Link>
                 <Link href="/login" onClick={closeMobile} className="hidden rounded-full border border-[#DFE9F7] px-3 py-2 text-xs font-black text-[#0B1744] sm:inline-flex">
-                    Log In
+                    {t.login}
                 </Link>
                 <Link href="/register" onClick={closeMobile} className="rounded-full bg-[#155EEF] px-4 py-2.5 text-xs font-black text-white shadow-[0_10px_24px_rgba(21,94,239,.18)]">
-                    Register
+                    {t.register}
                 </Link>
                 <button
                     aria-expanded={mobileOpen}
                     aria-label={mobileOpen ? 'Close navigation menu' : 'Open navigation menu'}
-                    className="grid h-10 w-10 place-items-center rounded-full border border-[#DFE9F7] bg-white text-[#0B1744] shadow-sm"
+                    className="grid h-12 w-12 place-items-center rounded-full border border-[#DFE9F7] bg-white text-[#0B1744] shadow-sm transition hover:border-[#BFD7FF] hover:bg-[#F8FBFF]"
                     type="button"
                     onClick={() => setMobileOpen((current) => !current)}
                 >
-                    {mobileOpen ? <X size={18} /> : <Menu size={18} />}
+                    {mobileOpen ? <X size={20} /> : <Menu size={20} />}
                 </button>
             </div>
 
             {mobileOpen && (
-                <div className="border-t border-[#E7EEF9] bg-white px-4 pb-4 pt-3 shadow-[0_18px_40px_rgba(16,33,63,.08)] sm:px-6 lg:hidden">
-                    <div className="mx-auto max-w-[720px]">
+                <div className="border-t border-[#E7EEF9] bg-white px-4 pb-6 pt-4 shadow-[0_18px_40px_rgba(16,33,63,.08)] sm:px-6 lg:hidden">
+                    <div className="mx-auto max-w-[720px] space-y-4">
                         <div className="grid grid-cols-3 gap-2">
                             <Link href="/subscribe" onClick={closeMobile} className="rounded-full border border-[#BFD7FF] px-3 py-2 text-center text-xs font-black text-[#155EEF]">
                                 {t.subscribe}
@@ -49,31 +48,31 @@ export default function PublicHeaderMobile() {
                                 {t.contact}
                             </Link>
                         </div>
-                        <div className="mt-4">
-                            <LanguageSelector />
+                        <div className="rounded-3xl border border-[#DFE9F7] bg-[#F8FBFF] p-4">
+                            <LanguageSelector inMobileMenu />
                         </div>
-                        <div className="mt-4 grid gap-2 text-sm font-black text-[#0B1744]">
+                        <div className="grid gap-2 text-sm font-black text-[#0B1744]">
                             <p className="px-3 pt-2 text-[11px] uppercase tracking-[.18em] text-slate-400">Solutions</p>
-                            <Link href="/solutions/buyers" onClick={closeMobile} className="rounded-xl px-3 py-2.5 hover:bg-blue-50">
+                            <Link href="/solutions/buyers" onClick={closeMobile} className="rounded-xl px-3 py-2 hover:bg-blue-50">
                                 {t.forBuyers}
                             </Link>
-                            <Link href="/solutions/suppliers" onClick={closeMobile} className="rounded-xl px-3 py-2.5 hover:bg-blue-50">
+                            <Link href="/solutions/suppliers" onClick={closeMobile} className="rounded-xl px-3 py-2 hover:bg-blue-50">
                                 {t.forSuppliers}
                             </Link>
                             <div className="my-1 border-t border-[#EEF3FA]" />
-                            <Link href="/platform" onClick={closeMobile} className="rounded-xl px-3 py-2.5 hover:bg-blue-50">
+                            <Link href="/platform" onClick={closeMobile} className="rounded-xl px-3 py-2 hover:bg-blue-50">
                                 {t.platform}
                             </Link>
-                            <Link href="/resources" onClick={closeMobile} className="rounded-xl px-3 py-2.5 hover:bg-blue-50">
+                            <Link href="/resources" onClick={closeMobile} className="rounded-xl px-3 py-2 hover:bg-blue-50">
                                 {t.resources}
                             </Link>
-                            <Link href="/partners" onClick={closeMobile} className="rounded-xl px-3 py-2.5 hover:bg-blue-50">
+                            <Link href="/partners" onClick={closeMobile} className="rounded-xl px-3 py-2 hover:bg-blue-50">
                                 {t.partners}
                             </Link>
-                            <Link href="/marketplace" onClick={closeMobile} className="rounded-xl px-3 py-2.5 hover:bg-blue-50">
+                            <Link href="/marketplace" onClick={closeMobile} className="rounded-xl px-3 py-2 hover:bg-blue-50">
                                 {t.searchMarketplace}
                             </Link>
-                            <Link href="/#why" onClick={closeMobile} className="rounded-xl px-3 py-2.5 hover:bg-blue-50">
+                            <Link href="/#why" onClick={closeMobile} className="rounded-xl px-3 py-2 hover:bg-blue-50">
                                 {t.whyTheDigiHubs}
                             </Link>
                         </div>

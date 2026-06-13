@@ -29,7 +29,7 @@ export default function TermsAndConditionsPage() {
         <div className="mx-auto grid max-w-[1180px] gap-10 lg:grid-cols-[.8fr_1fr]">
           <div>
             <Pill tone="blue">Terms</Pill>
-            <h1 className="mt-6 text-5xl font-black leading-[1.04] tracking-[-0.05em]">Terms and Conditions</h1>
+            <h1 className="mt-6 text-4xl font-black leading-[1.04] tracking-[-0.05em] sm:text-5xl">Terms and Conditions</h1>
             <p className="mt-5 text-lg font-semibold leading-8 text-slate-600">
               These terms summarize how public access requests, subscription review, support, and platform use are handled in TheDigiHubs.
             </p>

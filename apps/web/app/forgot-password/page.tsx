@@ -12,6 +12,7 @@ export default function ForgotPasswordPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [devToken, setDevToken] = useState('');
+  const showDevResetLink = process.env.NODE_ENV !== 'production';
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -26,7 +27,7 @@ export default function ForgotPasswordPage() {
       });
       const payload = await response.json().catch(() => null);
       setMessage(payload?.message || 'If an active account exists, password reset instructions will be sent.');
-      if (payload?.devToken) setDevToken(payload.devToken);
+      if (showDevResetLink && payload?.devToken) setDevToken(payload.devToken);
     } catch {
       setMessage('If an active account exists, password reset instructions will be sent.');
     } finally {
@@ -62,12 +63,12 @@ export default function ForgotPasswordPage() {
               />
             </div>
             {message && <p className="mt-5 rounded-xl bg-blue-50 p-3 text-sm font-bold text-[#155EEF]">{message}</p>}
-            {devToken && (
+            {showDevResetLink && devToken && (
               <Link href={`/reset-password?token=${encodeURIComponent(devToken)}`} className="mt-3 block rounded-xl border border-blue-100 bg-white p-3 text-sm font-black text-[#155EEF]">
                 Open local reset link
               </Link>
             )}
-            <button disabled={loading} className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#155EEF] px-6 py-3 text-sm font-black text-white disabled:opacity-60">
+            <button type="submit" disabled={loading} className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#155EEF] px-6 py-3 text-sm font-black text-white disabled:opacity-60">
               {loading ? 'Sending reset link' : 'Send reset link'} <ArrowRight size={16} />
             </button>
             <p className="mt-5 text-center text-sm font-bold text-slate-500">
