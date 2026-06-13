@@ -223,7 +223,7 @@ function HeroMapBackdrop() {
 
 function FloatingCard({ title, body, className, icon: Icon, tone }: IconCard & { className: string }) {
   return (
-    <div className={`absolute min-h-[76px] max-sm:!w-[48%] rounded-[18px] border border-[#D8E6F7] bg-white/95 p-2 shadow-[0_18px_44px_rgba(16,33,63,.13)] backdrop-blur sm:min-h-[104px] sm:rounded-[20px] sm:p-4 ${className}`}>
+    <div className={`absolute min-h-[76px] max-sm:!w-[48%] rounded-[18px] border border-[#D8E6F7] bg-white/95 p-2 shadow-[0_18px_44px_rgba(16,33,63,.13)] sm:min-h-[104px] sm:rounded-[20px] sm:p-4 ${className}`}>
       <div className="flex items-center gap-2 sm:gap-4">
         <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-full sm:h-14 sm:w-14 ${toneStyles[tone]}`}>
           <Icon size={20} strokeWidth={2.25} />
@@ -355,7 +355,7 @@ export default function Home() {
       <PublicHeader />
 
       <section className="relative overflow-hidden bg-white px-4 py-7 sm:px-6 lg:px-10 lg:py-8">
-        <div className="absolute right-0 top-24 h-[520px] w-[920px] rounded-full bg-blue-50 blur-3xl" />
+        <div className="pointer-events-none absolute right-0 top-24 hidden h-[520px] w-[920px] rounded-full bg-blue-50 blur-3xl lg:block" />
         <div className="mx-auto grid max-w-[1540px] items-center gap-12 lg:grid-cols-[.76fr_1.24fr]">
           <div className="relative z-10">
             <h1 className="max-w-[600px] text-[2.2rem] font-black leading-[1.08] tracking-[-0.04em] text-[#0B1744] sm:text-5xl lg:text-[56px]">
@@ -402,7 +402,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="why" className="scroll-mt-32 bg-[#F3FAFF] px-4 py-12 sm:px-8">
+      <section id="why" className="tdh-defer-section scroll-mt-32 bg-[#F3FAFF] px-4 py-12 sm:px-8">
         <Card className="mx-auto grid max-w-[1320px] gap-10 p-5 sm:p-9 lg:grid-cols-[345px_1fr]">
           <div>
             <h2 className="text-3xl font-black tracking-[-0.03em]">Why teams choose TheDigiHubs</h2>
@@ -494,7 +494,7 @@ export default function Home() {
         </Card>
       </section>
 
-      <section className="bg-[#0D1847] px-4 py-16 text-white sm:px-8">
+      <section className="tdh-defer-section bg-[#0D1847] px-4 py-16 text-white sm:px-8">
         <div className="text-center">
           <h2 className="text-3xl font-black tracking-[-0.04em] text-white sm:text-4xl">Deliver better outcomes at every step</h2>
           <div className="mx-auto mt-4 h-1 w-24 rounded-full bg-[#FFB000]" />
@@ -504,7 +504,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="platform" className="bg-[#101A46] px-4 py-16 text-white sm:px-8">
+      <section id="platform" className="tdh-defer-section bg-[#101A46] px-4 py-16 text-white sm:px-8">
         <div className="mx-auto grid max-w-[1320px] items-center gap-10 lg:grid-cols-[360px_1fr]">
           <div>
             <h2 className="text-3xl font-black sm:text-4xl">TheDigiHubs Platform</h2>
@@ -546,7 +546,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="resources" className="bg-[#EAF8FF] px-4 py-16 sm:px-8">
+      <section id="resources" className="tdh-defer-section bg-[#EAF8FF] px-4 py-16 sm:px-8">
         <SectionTitle title="Recognized by leading analysts" />
         <div className="mx-auto mt-10 grid max-w-[1100px] overflow-hidden rounded-[28px] bg-white shadow-card lg:grid-cols-[270px_1fr_330px]">
           <div className="grid place-items-center bg-gradient-to-br from-[#155EEF] to-[#0B1744] p-10 text-center text-3xl font-black tracking-[-0.04em] text-white">
@@ -578,7 +578,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="partners" className="px-4 pb-8 pt-14 sm:px-8">
+      <section id="partners" className="tdh-defer-section px-4 pb-8 pt-14 sm:px-8">
         <SectionTitle title="Trusted by forward-thinking organizations worldwide" />
         <div className="mx-auto mt-9 flex max-w-[1180px] flex-wrap items-center justify-between gap-8 text-[#1F3767]">
           {[
@@ -596,7 +596,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="px-4 pb-8 sm:px-8">
+      <section className="tdh-defer-section px-4 pb-8 sm:px-8">
         <Card className="mx-auto grid max-w-[1200px] grid-cols-1 items-center overflow-hidden border-0 bg-gradient-to-r from-[#17245D] to-[#155EEF] p-0 text-white shadow-[0_22px_58px_rgba(21,94,239,.18)] md:grid-cols-[320px_1fr]">
           <CtaWomanIllustration />
           <div className="p-6 sm:p-10">
@@ -611,7 +611,7 @@ export default function Home() {
         </Card>
       </section>
 
-      <footer className="bg-[#0D163F] px-4 py-12 text-white sm:px-8">
+      <footer className="tdh-defer-section bg-[#0D163F] px-4 py-12 text-white sm:px-8">
         <div className="mx-auto grid max-w-[1320px] gap-8 sm:grid-cols-2 lg:grid-cols-[340px_repeat(5,1fr)]">
           <div>
             <Logo light />

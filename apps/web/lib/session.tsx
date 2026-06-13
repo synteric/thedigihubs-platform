@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { apiErrorMessage, apiFetch } from './api';
 
 export type OrganizationType = 'BUYER' | 'SUPPLIER' | 'PLATFORM';
@@ -63,12 +63,21 @@ type SessionContextValue = {
 };
 
 const SessionContext = createContext<SessionContextValue | null>(null);
+const sessionAwarePrefixes = ['/buyer', '/supplier', '/admin', '/rfq', '/samples', '/access-denied'];
+
+function needsSessionBootstrap(pathname: string | null) {
+  if (!pathname) return false;
+  return sessionAwarePrefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+}
 
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<SessionPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [checkedPathname, setCheckedPathname] = useState<string | null>(null);
   const router = useRouter();
+  const pathname = usePathname();
+  const shouldLoadSession = needsSessionBootstrap(pathname);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -92,8 +101,25 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    void refresh();
-  }, [refresh]);
+    if (!shouldLoadSession) {
+      setLoading(false);
+      setError(null);
+      setCheckedPathname(pathname);
+      return;
+    }
+
+    let cancelled = false;
+    setLoading(true);
+    void refresh().finally(() => {
+      if (!cancelled) setCheckedPathname(pathname);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [pathname, refresh, shouldLoadSession]);
+
+  const sessionLoading = shouldLoadSession ? loading || checkedPathname !== pathname : false;
 
   const logout = useCallback(async () => {
     try {
@@ -118,7 +144,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<SessionContextValue>(() => ({
     session,
-    loading,
+    loading: sessionLoading,
     error,
     refresh,
     logout,
@@ -127,7 +153,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     hasOrganizationType: (types) => Boolean(session?.activeOrganization.type && types.includes(session.activeOrganization.type)),
     hasPermission: (permission) => Boolean(session?.permissions.includes(permission)),
     hasFeature: (feature) => Boolean(session?.features.includes(feature)),
-  }), [error, loading, logout, refresh, session, switchOrganization]);
+  }), [error, logout, refresh, session, sessionLoading, switchOrganization]);
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
 }

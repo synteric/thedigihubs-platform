@@ -110,7 +110,7 @@ export function AppShell({
 
   return (
     <div className="min-h-screen bg-[#F8FBFF] text-[#0B1744]">
-      <header className="fixed inset-x-0 top-0 z-40 flex h-[68px] items-center border-b border-[#DFE9F7] bg-white/95 px-4 backdrop-blur lg:h-[76px] lg:px-7">
+      <header className="fixed inset-x-0 top-0 z-40 flex h-[68px] items-center border-b border-[#DFE9F7] bg-white px-4 lg:h-[76px] lg:px-7">
         <Link href="/" className={`${collapsed ? 'lg:w-[72px]' : 'lg:w-[250px]'} transition-[width]`}>
           <Logo className="hidden lg:flex" markOnly={collapsed} />
           <Logo className="lg:hidden" markOnly />
@@ -219,7 +219,7 @@ export function AppShell({
           </div>
         </>
       )}
-      <nav className="fixed inset-x-0 bottom-0 z-40 flex gap-2 border-t border-[#DFE9F7] bg-white/95 px-3 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2 shadow-[0_-14px_34px_rgba(16,33,63,.08)] backdrop-blur lg:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-40 flex gap-2 border-t border-[#DFE9F7] bg-white px-3 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2 shadow-[0_-14px_34px_rgba(16,33,63,.08)] lg:hidden">
         {mobilePrimaryNav.map((item) => {
           const isActive = item.active || item.label === active || Boolean(item.href && pathname === item.href);
           const className = `flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 text-[11px] font-black ${isActive ? 'bg-blue-50 text-[#155EEF]' : item.href ? 'text-slate-600' : 'text-slate-400'}`;

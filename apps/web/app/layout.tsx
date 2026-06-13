@@ -5,6 +5,7 @@ import ClientShell from '../components/client-shell';
 import './globals.css';
 
 const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.thedigihubs.com';
+const enableGoogleScripts = process.env.NODE_ENV === 'production';
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -61,31 +62,38 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <head>
         <meta name="google-adsense-account" content="ca-pub-4861541956465835" />
+        <link rel="dns-prefetch" href="//www.googletagmanager.com" />
+        <link rel="dns-prefetch" href="//pagead2.googlesyndication.com" />
+        <link rel="dns-prefetch" href="//googleads.g.doubleclick.net" />
       </head>
       <body>
-        <Script
-          id="google-adsense-loader"
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4861541956465835"
-          strategy="afterInteractive"
-          crossOrigin="anonymous"
-        />
-        <Script
-          id="google-analytics-loader"
-          src="https://www.googletagmanager.com/gtag/js?id=G-2J7PJ51C04"
-          strategy="afterInteractive"
-        />
-        <Script
-          id="google-analytics"
-          strategy="afterInteractive"
-          dangerouslySetInnerHTML={{
-            __html: `
-              window.dataLayer = window.dataLayer || [];
-              function gtag(){dataLayer.push(arguments);}
-              gtag('js', new Date());
-              gtag('config', 'G-2J7PJ51C04');
-            `,
-          }}
-        />
+        {enableGoogleScripts && (
+          <>
+            <Script
+              id="google-adsense-loader"
+              src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4861541956465835"
+              strategy="lazyOnload"
+              crossOrigin="anonymous"
+            />
+            <Script
+              id="google-analytics-loader"
+              src="https://www.googletagmanager.com/gtag/js?id=G-2J7PJ51C04"
+              strategy="lazyOnload"
+            />
+            <Script
+              id="google-analytics"
+              strategy="lazyOnload"
+              dangerouslySetInnerHTML={{
+                __html: `
+                  window.dataLayer = window.dataLayer || [];
+                  function gtag(){dataLayer.push(arguments);}
+                  gtag('js', new Date());
+                  gtag('config', 'G-2J7PJ51C04');
+                `,
+              }}
+            />
+          </>
+        )}
         <Suspense fallback={null}>
           <ClientShell>
             {children}

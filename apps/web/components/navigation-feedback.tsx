@@ -58,7 +58,7 @@ export function NavigationFeedback() {
         <div className="tdh-navigation-progress h-full w-1/2 rounded-r-full bg-gradient-to-r from-[#155EEF] via-[#13B6D8] to-[#FFB000]" />
       </div>
       {showMessage && (
-        <div className="pointer-events-none fixed left-1/2 top-4 z-[101] -translate-x-1/2 rounded-full border border-[#BFD7FF] bg-white/95 px-4 py-2 text-xs font-black text-[#155EEF] shadow-[0_12px_34px_rgba(16,33,63,.14)] backdrop-blur" role="status" aria-live="polite">
+        <div className="pointer-events-none fixed left-1/2 top-4 z-[101] -translate-x-1/2 rounded-full border border-[#BFD7FF] bg-white px-4 py-2 text-xs font-black text-[#155EEF] shadow-[0_12px_34px_rgba(16,33,63,.14)]" role="status" aria-live="polite">
           Opening page...
         </div>
       )}

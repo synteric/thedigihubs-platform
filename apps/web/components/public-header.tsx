@@ -13,7 +13,7 @@ export function PublicHeader() {
   const { t } = useLocale();
 
   return (
-    <header className="sticky top-0 z-40 border-b border-[#E7EEF9] bg-white/95 backdrop-blur">
+    <header className="sticky top-0 z-40 border-b border-[#E7EEF9] bg-white">
       <PromoBanner />
       <div className="mx-auto flex min-h-[72px] max-w-[1540px] items-center gap-3 px-4 py-3 sm:px-6 lg:h-24 lg:gap-7 lg:px-10 lg:py-0">
         <Link href="/" aria-label="TheDigiHubs home">

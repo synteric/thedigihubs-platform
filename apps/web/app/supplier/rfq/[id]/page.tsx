@@ -1040,7 +1040,7 @@ export default function SupplierRfqDetail() {
             </div>
           </div>
 
-          <div className="sticky bottom-0 -mx-4 mt-5 flex flex-col gap-3 border-t border-[#DFE9F7] bg-white/95 px-4 py-4 backdrop-blur sm:-mx-6 sm:px-6 lg:-mx-10 lg:flex-row lg:items-center lg:justify-between lg:px-10">
+          <div className="sticky bottom-0 -mx-4 mt-5 flex flex-col gap-3 border-t border-[#DFE9F7] bg-white px-4 py-4 sm:-mx-6 sm:px-6 lg:-mx-10 lg:flex-row lg:items-center lg:justify-between lg:px-10">
             <Link href="/supplier" className="inline-flex items-center gap-2 rounded-xl border border-[#DFE9F7] bg-white px-6 py-3 text-sm font-black">
               <ArrowLeft size={16} />
               Back to Opportunities
